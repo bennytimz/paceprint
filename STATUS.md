@@ -9,10 +9,11 @@ Ahead of plan: Tier 1 items 1–8 are built and run end-to-end in Judge Mode. **
 - 01:40 Item 2: core pipeline (capture sim/replay, recorder, validity, protocol, analysis), simulated Judge fixture, tests.
 - 02:40 Items 3–8: Electron app (consent from the shared doc, setup checklist, refusal UI, warm-up strip, sweep + felt-ease, result curve + certainty, guided session, local store + delete-all), Judge Mode, verify-sdk. Item 9 time-to-lock and item 10 network audit done. Item 13 randomized order is a setting.
 - 03:00 README, docs/analysis.md, consent doc with measured network audit.
+- 03:40 Item 12 return-visit history, item 15 belly-first hint, item 16 Pace Card PNG; demo-script.md and devpost.md drafts.
 
 ## Next
-- Live camera test in Electron (owner present). Then replace the simulated Judge fixture with a real recorded one (judge-recorded.json).
-- Item 12 return-visit trend; Tier 3: Pace Card PNG, belly-first coaching, adaptive nudging, polish.
+- Owner live test (NEEDS_OWNER #2, #4) → fix what breaks → real Judge fixture from the saved recording → README verify-sdk output.
+- Then: accessibility pass, README GIF, video production support. Item 14 (adaptive nudging) deferred.
 
 ## Blockers / risks
 - Live path (renderer SDK via bindSmartSpectraIpc) is untested with a person in frame; only headless verify-sdk ran (dark room).
