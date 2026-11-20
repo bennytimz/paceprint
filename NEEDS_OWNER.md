@@ -32,6 +32,15 @@ npm start
 Walk through consent → setup → baseline → sweep. Try talking and moving during a stage to check the
 app pauses and says why. Note anything confusing in this file under "Feedback".
 
+## 4b. Decide: CLAUDE.md in the public repo — NEEDED BY: Sun Nov 22, 12:00
+CLAUDE.md (committed) contains our competitive notes about other entries. Before making the repo public, either keep it (shows the agent workflow) or remove it:
+```powershell
+git rm --cached CLAUDE.md; Add-Content .gitignore "CLAUDE.md"; git commit -m "Keep agent brief local"
+```
+
+## 4c. FYI: Presage has its own "Coherence by Presage Tech" iOS app — check by Sun 12:00
+App Store: https://apps.apple.com/us/app/id6758461062 . If it already finds a personal breathing pace from the camera, we should mention it under Prior art (README) so judges do not think we missed it. Tell Claude what it does.
+
 ## 5. Later (Sun): OBS recording, publish post, make repo public, submit
 Details will be added here before the freeze (Sun Nov 22, 08:00).
 

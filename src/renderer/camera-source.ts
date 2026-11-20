@@ -46,7 +46,18 @@ export class CameraSource implements CaptureSource {
       const tt = this.norm.sec(ts);
       listener({ type: 'validation', t: Number.isFinite(tt) ? tt : t(), code, hint });
     });
-    sdk.on('error', (code: number, message: string, retryable: boolean) => listener({ type: 'error', t: t(), code, message, retryable }));
+    sdk.on('error', (code: number, message: string, retryable: boolean) => {
+      // 13 = kMetricNotAuthorized, 3 = kConfigurationFailed: the key may not be provisioned for
+      // cardio. Fall back once to breathing + face (Plan C scoring), instead of failing.
+      const askedCardio = metrics.some((m) => cardioMetrics.includes(m));
+      if ((code === 13 || code === 3) && askedCardio && !this.cardioRefused) {
+        this.cardioRefused = true;
+        this.onLog(`cardio refused (${code}: ${message}); continuing with breathing + face`);
+        void this.close().then(() => this.open(key, [...breathingMetrics, ...faceMetrics], listener, t));
+        return;
+      }
+      listener({ type: 'error', t: t(), code, message, retryable });
+    });
     sdk.on('metrics', (buf: Uint8Array, ts: number) => {
       try {
         const m = decodeMetrics(buf);
