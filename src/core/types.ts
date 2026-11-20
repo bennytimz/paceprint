@@ -51,7 +51,9 @@ export type StreamEvent =
   | { type: 'status'; t: number; status: number }
   | { type: 'error'; t: number; code: number; message: string; retryable: boolean }
   /** pacer phase marker written by the app while recording (0..1 cycle phase, bpm) */
-  | { type: 'pacer'; t: number; bpm: number; stage: string };
+  | { type: 'pacer'; t: number; bpm: number; stage: string }
+  /** protocol markers (phase changes, felt-ease ratings) so a replay reproduces the session */
+  | { type: 'marker'; t: number; kind: 'phase' | 'rating' | 'end'; data: Record<string, any> };
 
 /** A recorded metric stream. Never contains video or frames. */
 export interface Recording {

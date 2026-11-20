@@ -6,9 +6,10 @@ Expect to reach about backlog item 9–11.
 
 ## Done
 - 00:50 Item 1: repo set up, SDK 3.5.0 installed and loading on Windows, key auth verified, spike doc written.
+- 01:40 Item 2: core pipeline (capture sim/replay, recorder, validity, protocol, analysis), simulated Judge fixture, 13 tests pass.
 
 ## Next
-- Item 2: capture adapter (camera | replay | simulated), recorder, fixtures.
+- Item 3: Electron shell + Judge Mode (npm run demo) + verify-sdk wiring.
 
 ## Blockers / risks
 - Daylight live spike needed (NEEDS_OWNER #2) to confirm cardio + beat detection.
