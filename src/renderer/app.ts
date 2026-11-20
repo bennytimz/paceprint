@@ -218,7 +218,8 @@ for (const b of document.querySelectorAll<HTMLButtonElement>('.speed button')) {
   b.addEventListener('click', () => {
     document.querySelectorAll('.speed button').forEach((x) => x.classList.remove('on'));
     b.classList.add('on');
-    if (replay) replay.speed = Number(b.dataset.speed);
+    if (replay && !(protocol?.phase.name === 'result')) replay.speed = Number(b.dataset.speed);
+    heldSpeed = Number(b.dataset.speed);
   });
 }
 
@@ -498,8 +499,9 @@ function showResult() {
     : b?.status === 'excluded' ? `Baseline not read: ${b.reason}` : '';
   const gp = r.bestPace !== null && r.certainty !== 'flat' ? r.bestPace : null;
   ($('btn-guided') as HTMLButtonElement).textContent = `Start 5-minute guided session${gp ? ` at ${gp}/min` : ''}`;
-  ($('btn-guided') as HTMLButtonElement).hidden = info.demo || !running;
-  saveSummary();
+  ($('btn-guided') as HTMLButtonElement).hidden = !running;
+  if (info.demo && replay) { heldSpeed = replay.speed; replay.speed = 0; ($('btn-guided') as HTMLButtonElement).textContent = 'Play the recorded guided session'; }
+  saveSummary().then(renderHistory);
 }
 
 function stageRow(s: StageResult, best: number | null): string {
@@ -520,7 +522,11 @@ async function saveSummary() {
   if (recorder && settings.saveStreams) await api.saveStream(sessionId, JSON.stringify(recorder.toRecording('live session')));
 }
 
-$('btn-guided').addEventListener('click', () => protocol?.startGuided());
+let heldSpeed = 0;
+$('btn-guided').addEventListener('click', () => {
+  if (info.demo && replay) { replay.speed = heldSpeed || currentSpeed(); return; }
+  protocol?.startGuided();
+});
 $('btn-again').addEventListener('click', () => (info.demo ? startSession() : running ? (protocol = null, startSession()) : startSession()));
 $('btn-end-guided').addEventListener('click', () => protocol?.finishGuided());
 
@@ -531,7 +537,7 @@ function showDone() {
   const mins = Math.max(0, Math.round((p.now - (p.phase.start - 0)) / 60));
   const avg = guidedFollow.length ? guidedFollow.reduce((a, b) => a + b, 0) / guidedFollow.length : NaN;
   const lastBpm = p.cfg.paces.length ? (p.result ? (p.result.bestPace ?? 6) : 6) : 6;
-  $('done-text').textContent = `Guided breathing finished${Number.isFinite(avg) ? `, with an average follow score of ${Math.round(avg * 100)}%` : ''}. Your result is saved on this computer only.${mins ? '' : ''}`;
+  $('done-text').textContent = `Guided breathing finished${Number.isFinite(avg) ? `, with an average follow score of ${Math.round(avg * 100)}%` : ''}. ${info.demo ? ' (Judge Mode saves nothing.)' : ' Your result is saved on this computer only.'}${mins ? '' : ''}`;
   void lastBpm;
   if (!info.demo) stopAll('Session finished.').then(() => show('scr-done'));
 }
@@ -595,3 +601,76 @@ setInterval(() => {
 }, 66);
 
 boot().catch((e) => message('Something went wrong', 'Paceprint could not start.', String(e?.message ?? e)));
+
+// ------------------------------------------------------------------ return visits (own history only)
+async function renderHistory() {
+  const el = $('res-history');
+  if (info.demo || !protocol?.result) { el.hidden = true; return; }
+  const past: any[] = (await api.sessions()).filter((s: any) => s.id !== sessionId).slice(0, 6).reverse();
+  if (!past.length) { el.hidden = true; return; }
+  const r = protocol.result;
+  const item = (date: string, pace: number | null, cert: string, now = false) =>
+    `<li class="${now ? 'now' : ''}">${escapeHtml(date)} · ${pace && cert !== 'flat' && cert !== 'insufficient' ? `${pace}/min` : 'no clear peak'}${cert === 'weak' ? ' (weak)' : ''}</li>`;
+  const clear = past.filter((s) => s.bestPace && (s.certainty === 'clear' || s.certainty === 'weak')).map((s) => s.bestPace as number);
+  let note = '';
+  if (clear.length >= 2 && r.bestPace) {
+    const spread = Math.max(...clear, r.bestPace) - Math.min(...clear, r.bestPace);
+    note = spread <= 0.5 ? 'Your best pace has been consistent across visits.' : 'Your best pace has varied between visits. Sleep, stress and time of day can shift it; the most common value is a sensible default.';
+  }
+  el.innerHTML = `<strong>Your past results</strong> <span class="muted">(compared only with you)</span><ol>${past.map((s) => item(new Date(s.createdAt).toLocaleDateString(), s.bestPace, s.certainty)).join('')}${item('Today', r.bestPace, r.certainty, true)}</ol>${note ? `<p class="muted small">${note}</p>` : ''}`;
+  el.hidden = false;
+}
+
+// ------------------------------------------------------------------ Pace Card (PNG, only when the user asks)
+function paceCard(): HTMLCanvasElement {
+  const r = protocol!.result!;
+  const cv = document.createElement('canvas');
+  cv.width = 1200; cv.height = 630;
+  const c = cv.getContext('2d')!;
+  const g = c.createLinearGradient(0, 0, 1200, 630);
+  g.addColorStop(0, '#0e1116'); g.addColorStop(1, '#14211e');
+  c.fillStyle = g; c.fillRect(0, 0, 1200, 630);
+  c.fillStyle = '#74c7b4'; c.beginPath(); c.arc(84, 84, 16, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#ebe6dc'; c.font = '600 28px "Segoe UI", system-ui, sans-serif'; c.fillText('Paceprint', 112, 94);
+  c.fillStyle = '#8d96a3'; c.font = '20px "Segoe UI", system-ui, sans-serif';
+  c.fillText(`${new Date().toLocaleDateString()}${info.demo ? ' · simulated demo session' : ''}`, 68, 150);
+  c.fillStyle = '#ebe6dc'; c.font = '600 64px "Segoe UI", system-ui, sans-serif';
+  const title = r.bestPace !== null && r.certainty !== 'flat' && r.certainty !== 'insufficient' ? `My pace: about ${r.bestPace}/min` : 'No clear favourite pace today';
+  c.fillText(title, 68, 240);
+  c.fillStyle = r.certainty === 'clear' ? '#7fc794' : r.certainty === 'weak' ? '#e7b95f' : '#8d96a3';
+  c.font = '600 26px "Segoe UI", system-ui, sans-serif';
+  c.fillText(CERT[r.certainty][0], 68, 290);
+  // mini curve
+  const pts = r.points.filter((p) => p.status === 'ok' && p.amplitude !== null).sort((a, b) => a.bpm - b.bpm);
+  const x0 = 68, y0 = 520, w = 620, h = 170;
+  const ymax = Math.max(1, ...pts.map((p) => p.amplitude!)) * 1.1;
+  const X = (b: number) => x0 + ((b - 4.75) / 2.5) * w, Y = (v: number) => y0 - (v / ymax) * h;
+  c.strokeStyle = '#252c37'; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x0 + w, y0); c.stroke();
+  if (pts.length > 1) {
+    c.strokeStyle = '#ee8c74'; c.lineWidth = 4; c.beginPath();
+    pts.forEach((p, i) => (i ? c.lineTo(X(p.bpm), Y(p.amplitude!)) : c.moveTo(X(p.bpm), Y(p.amplitude!)))); c.stroke();
+    c.fillStyle = '#ee8c74'; for (const p of pts) { c.beginPath(); c.arc(X(p.bpm), Y(p.amplitude!), 7, 0, Math.PI * 2); c.fill(); }
+  }
+  c.fillStyle = '#8d96a3'; c.font = '18px "Segoe UI", system-ui, sans-serif';
+  for (const p of r.points) c.fillText(p.bpm.toFixed(1), X(p.bpm) - 14, y0 + 30);
+  c.fillText('heart-rhythm swing by breathing pace (breaths/min)', x0, y0 + 62);
+  // felt
+  c.fillStyle = '#ebe6dc'; c.font = '600 24px "Segoe UI", system-ui, sans-serif'; c.fillText('Felt easiest', 780, 360);
+  const felt = [...r.points].filter((p) => p.felt).sort((a, b) => (b.felt! - a.felt!))[0];
+  c.fillStyle = '#74c7b4'; c.font = '600 48px "Segoe UI", system-ui, sans-serif'; c.fillText(felt ? `${felt.bpm.toFixed(1)}/min` : '—', 780, 420);
+  c.fillStyle = '#8d96a3'; c.font = '18px "Segoe UI", system-ui, sans-serif';
+  c.fillText('Measured vs felt, relative to me today.', 780, 470);
+  c.fillText('Wellness only. Not a medical reading.', 780, 500);
+  return cv;
+}
+$('btn-card').addEventListener('click', () => {
+  if (!protocol?.result) return;
+  paceCard().toBlob((b) => {
+    if (!b) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = `paceprint-card-${new Date().toISOString().slice(0, 10)}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, 'image/png');
+});

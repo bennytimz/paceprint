@@ -195,3 +195,9 @@ svg .bar.excl { fill: var(--muted); opacity: .3; }
   .setup { grid-template-columns: 1fr; }
 }
 body.reduced-motion * { transition: none !important; animation: none !important; }
+
+/* history */
+.history { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: 13.5px; }
+.history ol { list-style: none; padding: 0; margin: 6px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.history li { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); }
+.history li.now { border-color: var(--breath); color: var(--breath); }
