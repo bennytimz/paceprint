@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paceprint</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="bar">
+    <div class="brand" aria-label="Paceprint"><span class="logo" aria-hidden="true"></span>Paceprint</div>
+    <div id="judge-banner" class="judge" hidden>
+      <strong id="judge-kind">Recorded session</strong>
+      <span id="judge-note">Judge Mode: no camera, no key, no network.</span>
+      <span class="speed" role="group" aria-label="Playback speed">
+        <button data-speed="1">1×</button><button data-speed="4">4×</button><button data-speed="12" class="on">12×</button><button data-speed="30">30×</button>
+      </span>
+    </div>
+    <div class="bar-right">
+      <span id="cam-live" class="cam-live" hidden role="status"><i aria-hidden="true"></i>Camera live</span>
+      <button id="btn-data" class="ghost">Your data</button>
+      <button id="btn-stop" class="danger" hidden title="Stop and turn the camera off (Esc)">Stop</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- 1. Consent -->
+    <section id="scr-consent" class="screen">
+      <div class="consent">
+        <p class="eyebrow">Before we start</p>
+        <h1>Find the breathing pace that suits <em>you</em>.</h1>
+        <p class="lede">Most breathing apps assume six breaths a minute suits everyone. Paceprint measures which slow pace your heart rhythm and breathing move together best, from your webcam, and refuses to show numbers it can't trust.</p>
+        <div id="consent-short" class="consent-short"></div>
+        <details id="consent-full-wrap"><summary>Read the full consent and data notice</summary><div id="consent-full" class="doc"></div></details>
+        <label class="check"><input type="checkbox" id="chk-adult" /> I am 18 or older.</label>
+        <label class="check"><input type="checkbox" id="chk-wellness" /> I understand Paceprint is a wellness tool, not a medical device, and I can stop at any time.</label>
+        <div class="row">
+          <button id="btn-accept" class="primary" disabled>Accept and turn on camera</button>
+          <button id="btn-decline" class="ghost">No thanks</button>
+        </div>
+        <p id="consent-msg" class="muted small" role="status"></p>
+      </div>
+    </section>
+
+    <!-- 2. Setup check -->
+    <section id="scr-setup" class="screen" hidden>
+      <div class="setup">
+        <div class="preview-wrap">
+          <video id="preview" class="preview" autoplay muted playsinline></video>
+          <div id="preview-placeholder" class="preview placeholder" hidden><span>Recorded session<br /><small>no camera in Judge Mode</small></span></div>
+          <div class="preview-chips" id="setup-chips"></div>
+        </div>
+        <div class="setup-side">
+          <p class="eyebrow">Setup check</p>
+          <h2>Let's get a clean signal</h2>
+          <ul id="checklist" class="checklist"></ul>
+          <details class="tips"><summary>Tips for a good reading</summary>
+            <ul>
+              <li>Even light from the front. No window or lamp behind you.</li>
+              <li>Avoid flickering light: some screens and bulbs flicker.</li>
+              <li>Laptop on a table, not on your lap. Sit back so your chest and waist are in view.</li>
+              <li>Plain, lighter clothing reads best. Dark or tight stripes can confuse it.</li>
+              <li>Stay still and don't talk while measuring.</li>
+            </ul>
+          </details>
+          <div class="warmup" id="warmup-setup"></div>
+          <button id="btn-begin" class="primary" disabled>Start (about 12 minutes)</button>
+          <p class="muted small" id="setup-msg" role="status">Everything must be green for a few seconds.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Session (baseline, sweep, guided) -->
+    <section id="scr-session" class="screen" hidden>
+      <ol class="stages" id="stages" aria-label="Progress"></ol>
+      <div class="session">
+        <div class="pacer-col">
+          <div class="pacer" id="pacer" role="img" aria-label="Breathing guide">
+            <svg viewBox="0 0 300 300" aria-hidden="true">
+              <circle cx="150" cy="150" r="138" class="ring-track" />
+              <circle cx="150" cy="150" r="138" class="ring-follow" id="ring-follow" />
+              <circle cx="150" cy="150" r="100" class="orb" id="orb" />
+            </svg>
+            <div class="pacer-text">
+              <div id="pacer-label" class="pacer-label">Breathe normally</div>
+              <div id="pacer-sub" class="pacer-sub"></div>
+            </div>
+          </div>
+          <div class="phase-title" id="phase-title">Baseline</div>
+          <div class="phase-sub" id="phase-sub" aria-live="polite"></div>
+          <div id="refusal" class="refusal" hidden role="alert">
+            <strong id="refusal-title">Paused</strong>
+            <span id="refusal-tip"></span>
+            <small>This moment is not being used. The timer waits for good data.</small>
+          </div>
+        </div>
+        <div class="signal-col">
+          <div class="sig-top">
+            <div class="mini-preview-wrap">
+              <video id="preview-mini" class="mini-preview" autoplay muted playsinline></video>
+              <div id="mini-placeholder" class="mini-preview placeholder" hidden><span>Recorded session</span></div>
+            </div>
+            <div class="readouts" id="readouts"></div>
+          </div>
+          <div class="sig-mid">
+            <div class="chips" id="chips" aria-label="Signal checks"></div>
+            <div class="warmup" id="warmup" aria-label="Warm-up windows"></div>
+          </div>
+          <div class="trace"><div class="trace-head"><span class="dot breath"></span>Breathing (belly) <span class="ghost-key">grey = the guide · shaded = refused, not used</span></div><canvas id="cv-breath"></canvas></div>
+          <div class="trace"><div class="trace-head"><span class="dot heart"></span>Pulse waveform <span class="ghost-key">from the SDK, beat by beat</span></div><canvas id="cv-pulse"></canvas></div>
+        </div>
+      </div>
+      <div class="row center"><button id="btn-end-guided" class="ghost" hidden>End session</button></div>
+    </section>
+
+    <!-- 4. Felt-ease rating -->
+    <div id="rate" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="rate-q">
+      <div class="card">
+        <p class="eyebrow" id="rate-pace"></p>
+        <h2 id="rate-q">How easy did that pace feel?</h2>
+        <div class="rate-buttons" id="rate-buttons">
+          <button data-v="1"><b>1</b>Hard</button><button data-v="2"><b>2</b></button><button data-v="3"><b>3</b>OK</button><button data-v="4"><b>4</b></button><button data-v="5"><b>5</b>Easy</button>
+        </div>
+        <p class="muted small" id="rate-note">Press 1 to 5. Your answer sits beside the measurement in the result.</p>
+      </div>
+    </div>
+
+    <!-- 5. Result -->
+    <section id="scr-result" class="screen" hidden>
+      <div class="result">
+        <div class="result-head">
+          <div>
+            <p class="eyebrow">Your result</p>
+            <h1 id="res-title">—</h1>
+            <p id="res-expl" class="lede"></p>
+          </div>
+          <div class="cert" id="res-cert"></div>
+        </div>
+        <div class="charts">
+          <figure><figcaption>Measured: heart-rhythm swing at each pace</figcaption><div id="chart-measured"></div></figure>
+          <figure><figcaption>Felt: how easy each pace felt</figcaption><div id="chart-felt"></div></figure>
+        </div>
+        <table class="stage-table" id="res-table"></table>
+        <p class="muted small" id="res-baseline"></p>
+        <div class="row">
+          <button id="btn-guided" class="primary">Start 5-minute guided session</button>
+          <button id="btn-again" class="ghost">Measure again</button>
+        </div>
+        <p class="muted small">Wellness only, relative to you today. Not a medical reading.</p>
+      </div>
+    </section>
+
+    <!-- 6. Done -->
+    <section id="scr-done" class="screen" hidden>
+      <div class="consent">
+        <p class="eyebrow">Session complete</p>
+        <h1 id="done-title">Nicely done.</h1>
+        <p id="done-text" class="lede"></p>
+        <div class="row"><button id="btn-back-result" class="primary">Back to result</button></div>
+      </div>
+    </section>
+
+    <!-- Stopped / errors -->
+    <section id="scr-message" class="screen" hidden>
+      <div class="consent">
+        <p class="eyebrow" id="msg-eyebrow">Stopped</p>
+        <h1 id="msg-title">Camera is off.</h1>
+        <p id="msg-text" class="lede"></p>
+        <div class="row"><button id="btn-msg-primary" class="primary">Start again</button></div>
+      </div>
+    </section>
+
+    <!-- Your data drawer -->
+    <aside id="panel-data" class="drawer" hidden aria-labelledby="data-h">
+      <div class="drawer-head"><h2 id="data-h">Your data</h2><button id="btn-close-data" class="ghost" aria-label="Close">Close</button></div>
+      <p class="small">Everything Paceprint keeps is on this computer, in <code id="data-dir"></code>.</p>
+      <p class="small" id="data-summary"></p>
+      <label class="check"><input type="checkbox" id="set-streams" /> Save session data (signal numbers only, never video) so sessions can be replayed. Off by default.</label>
+      <label class="check"><input type="checkbox" id="set-motion" /> Reduce motion</label>
+      <label class="check"><input type="checkbox" id="set-sound" /> Soft sound cue at each breath</label>
+      <label class="check"><input type="checkbox" id="set-random" /> Randomize the order of paces</label>
+      <h3>Past sessions</h3>
+      <ul id="session-list" class="session-list"></ul>
+      <div class="row">
+        <button id="btn-open-folder" class="ghost">Open folder</button>
+        <button id="btn-delete-all" class="danger">Delete everything</button>
+      </div>
+      <p class="small muted" id="delete-msg" role="status"></p>
+      <h3>What leaves this computer</h3>
+      <p class="small">Only the SmartSpectra SDK's connection to Presage (<code>cont-api.physiology.presagetech.com</code>) to check the key, count usage, and download models. Telemetry off. No video is saved or sent by Paceprint. Measured, see the full notice.</p>
+    </aside>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

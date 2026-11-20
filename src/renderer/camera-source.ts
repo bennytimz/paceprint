@@ -1,0 +1,68 @@
+// Live camera source: the official SmartSpectra renderer SDK (camera captured here, processed by
+// the native runtime in the main process via bindSmartSpectraIpc). Emits normalized StreamEvents.
+import type { CaptureSource, Listener } from '../core/capture';
+import { Normalizer } from '../core/normalize';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ssr = require('@smartspectra/node-sdk/renderer');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { decodeMetrics } = require('@smartspectra/node-sdk/messages');
+const { SmartSpectraSDK, breathingMetrics, cardioMetrics, faceMetrics, edaMetrics } = ssr;
+
+declare global { interface Window { paceprint: any } }
+
+export class CameraSource implements CaptureSource {
+  readonly kind = 'camera' as const;
+  private sdk: any = null;
+  private norm = new Normalizer();
+  /** set when cardio metrics were refused for this key (Plan C fallback) */
+  cardioRefused = false;
+
+  constructor(private onStream: (s: MediaStream) => void, private onLog: (msg: string) => void = () => {}) {}
+
+  async start(listener: Listener) {
+    const key: string = await window.paceprint.prepareLive();
+    const t = () => (performance.now() - this.wallStart) / 1000;
+    const full = [...breathingMetrics, ...cardioMetrics, ...faceMetrics, ...edaMetrics];
+    try {
+      await this.open(key, full, listener, t);
+    } catch (e: any) {
+      // Cardio metrics need a provisioned key. Fall back to breathing + face, honestly labelled.
+      this.onLog(`Full metric request failed (${e?.message ?? e}); retrying without cardio.`);
+      this.cardioRefused = true;
+      await this.close();
+      await this.open(key, [...breathingMetrics, ...faceMetrics], listener, t);
+    }
+  }
+
+  private wallStart = performance.now();
+
+  private async open(key: string, metrics: number[], listener: Listener, t: () => number) {
+    const sdk = new SmartSpectraSDK({ apiKey: key, requestedMetrics: metrics, enableTelemetry: false });
+    this.sdk = sdk;
+    sdk.on('streamAvailable', (s: MediaStream) => this.onStream(s));
+    sdk.on('processingStatus', (status: number) => listener({ type: 'status', t: t(), status }));
+    sdk.on('validationStatus', (code: number, ts: number, hint: string) => {
+      const tt = this.norm.sec(ts);
+      listener({ type: 'validation', t: Number.isFinite(tt) ? tt : t(), code, hint });
+    });
+    sdk.on('error', (code: number, message: string, retryable: boolean) => listener({ type: 'error', t: t(), code, message, retryable }));
+    sdk.on('metrics', (buf: Uint8Array, ts: number) => {
+      try {
+        const m = decodeMetrics(buf);
+        if (m && !(m instanceof Uint8Array)) listener({ type: 'packet', p: this.norm.packet(m, ts) });
+      } catch (e) { this.onLog(`decode failed: ${e}`); }
+    });
+    await sdk.start();
+  }
+
+  private async close() {
+    const sdk = this.sdk;
+    this.sdk = null;
+    if (!sdk) return;
+    try { await sdk.stop(); } catch { /* already stopped */ }
+    try { sdk.destroy(); } catch { /* already destroyed */ }
+  }
+
+  async stop() { await this.close(); }
+}
