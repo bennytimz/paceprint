@@ -29,8 +29,21 @@ Post in the Presage Discord (challenge channel) or email support@presagetech.com
 ```powershell
 npm start
 ```
-Walk through consent → setup → baseline → sweep. Try talking and moving during a stage to check the
-app pauses and says why. Note anything confusing in this file under "Feedback".
+**This is the most important owner task: the live camera path in the app has not yet run with a person.**
+1. Good light, laptop on a table, sit back (chest in view), plain light-coloured top.
+2. Before accepting consent, click **Your data** (top right) → tick **Save session data** → Close.
+3. Accept → wait for all green → **Start**. Do the whole flow (~12 min). Rate each pace honestly.
+4. During pace 1 (7.0/min, after its 30 s settle): **talk for ~10 s**; later **move your head/arms ~5 s**.
+   Check: timer pauses, yellow "Paused: Talking / Moving" card, hatched stretch on the traces.
+5. At the result, click **Save Pace Card (PNG)**. Optionally start the guided session.
+6. Tell Claude "live test done" + anything odd (chips never green, stuck screens, numbers that looked wrong).
+   Claude will turn the saved recording (in `%APPDATA%\paceprint\paceprint-data\recordings\`, numbers only,
+   no video) into the real Judge Mode fixture.
+
+If something breaks, start it with logs and paste the terminal output to Claude:
+```powershell
+$env:PACEPRINT_DEVTOOLS = "1"; npm start
+```
 
 ## 4b. Decide: CLAUDE.md in the public repo — NEEDED BY: Sun Nov 22, 12:00
 CLAUDE.md (committed) contains our competitive notes about other entries. Before making the repo public, either keep it (shows the agent workflow) or remove it:

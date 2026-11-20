@@ -51,3 +51,8 @@ certainty at most "weak". The guided session then uses the most comfortable well
 - Unit tests on synthetic signals: beat detection recovers 72 bpm; coupling recovers a 4 bpm swing at 0.1 Hz with PLV > 0.95; adherence separates following (r > 0.9) from not following (r < 0.4).
 - End-to-end tests with a simulated person (breathing as an oscillator pulled toward the pacer, heart-rate swing peaking at a chosen pace): the modelled best pace (5.5) is recovered; talking and motion are excluded and the window extended; a stage ruined by motion is excluded with a reason; a flat person gets "flat" or "weak", never "clear".
 - **Not yet validated on real people.** The daylight spike and user tests will show how the method behaves on real webcam data. Results are a wellness estimate, not a clinical resonance-frequency assessment.
+
+## Belly-first coaching (guided session)
+Every 5 s, over the last 20 s of clean data: RMS of the chest and belly traces band-passed around the guide
+pace. Chest/belly > 1.2 → "let your belly lead"; < 0.8 → "your belly is leading". The traces are
+uncalibrated, so this is a gentle heuristic shown as a suggestion, never a score.

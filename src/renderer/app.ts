@@ -8,7 +8,7 @@ import { Protocol, PhaseName } from '../core/protocol';
 import { Pacer } from '../core/pacer';
 import { Recorder, parseRecording } from '../core/recorder';
 import { detectBeats, heartRateSeries, coupling, ANALYSIS, StageResult } from '../core/analysis';
-import { resample } from '../core/dsp';
+import { resample, bandpass } from '../core/dsp';
 import { validationMessage } from '../core/validation-codes';
 import { CameraSource } from './camera-source';
 import { TraceCanvas, measuredChart, feltChart, Span } from './charts';
@@ -370,7 +370,7 @@ function renderSession(t: number, heavy: boolean) {
   $('phase-sub').textContent = ph.name === 'baseline' ? 'This gives Paceprint your own starting point. No guide yet.'
     : ph.name === 'settle' ? 'Follow the circle. The first 30 seconds let your body settle and are not measured.'
     : ph.name === 'measure' ? 'Keep following. Stay still and quiet.'
-    : 'Breathe with the circle. Gently, no forcing.';
+    : bellyHint || 'Breathe with the circle. Gently, no forcing.';
 
   // refusal card
   const ref = $('refusal');
@@ -392,6 +392,7 @@ function renderSession(t: number, heavy: boolean) {
     ring.setAttribute('aria-label', `Follow score ${Number.isFinite(f) ? Math.round(f * 100) : 0} percent`);
   }
   if (heavy && t - swing.at > 2) updateSwing(t);
+  if (heavy && ph.name === 'guided' && t - bellyAt > 5) updateBelly(t);
 
   if (!heavy) return;
   $('chips').innerHTML = chipsHtml(t);
@@ -400,6 +401,22 @@ function renderSession(t: number, heavy: boolean) {
   const breath = p.lower.length ? p.lower : p.upper;
   breathCv.draw(tail(breath, t - 25), t, { ghost: tail(p.pacerFill, t - 25), invalid: invalidSpans, frozen: lost });
   pulseCv.draw(tail(p.pressure, t - 9), t, { invalid: invalidSpans, frozen: lost, label: lost ? 'Signal lost' : !p.hasCardio ? 'Pulse not available' : undefined });
+}
+
+let bellyHint = '';
+let bellyAt = -10;
+/** Belly-first coaching: compare chest vs belly trace movement at the guide pace over the last 20 s of clean data. */
+function updateBelly(t: number) {
+  const p = protocol!;
+  bellyAt = t;
+  const a = t - 20, f0 = p.phase.bpm / 60;
+  if (!p.verdict.ok || invalidSpans.some((s) => s.b > a) || !p.upper.length || !p.lower.length) { bellyHint = ''; return; }
+  const amp = (arr: Sample[]) => { const x = bandpass(resample(tail(arr, a - 1), a, t, 10), 10, f0 * 0.5, f0 * 2); return Math.sqrt(x.reduce((s, v) => s + v * v, 0) / x.length); };
+  const chest = amp(p.upper), belly = amp(p.lower);
+  if (!(chest > 0) || !(belly > 0)) { bellyHint = ''; return; }
+  const r = chest / belly;
+  bellyHint = r > 1.2 ? 'Most of the movement is in your chest. Let your belly lead: breathe low and slow, chest quiet.'
+    : r < 0.8 ? 'Nice: your belly is leading the breath. Keep it soft.' : '';
 }
 
 /** Paceprint's own beat-to-beat heart-rhythm swing over the last 30 s, only when all 30 s were valid. */
