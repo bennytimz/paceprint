@@ -1,0 +1,31 @@
+{
+  "name": "paceprint",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Find the breathing pace where your heart rhythm and breathing couple best, from a webcam. Wellness tool, not a medical device.",
+  "license": "MIT",
+  "author": "Bennytimz",
+  "main": "dist/main/main.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "demo": "npm run build && electron . --demo",
+    "verify-sdk": "npm run build && node dist/scripts/verify-sdk.js",
+    "spike": "npm run build && node dist/scripts/verify-sdk.js --spike",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@smartspectra/node-sdk": "3.5.0"
+  },
+  "devDependencies": {
+    "electron": "43.8.1",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^22.0.0"
+  }
+}
