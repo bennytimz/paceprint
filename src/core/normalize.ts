@@ -45,8 +45,34 @@ export class Normalizer {
   }
 
   /** packetTsUs: the timestamp passed with the `metrics` event */
+  private pktOffsetUs: number | null = null;
+  private lastT = 0;
+
+  /**
+   * Packet time comes from the measurement timestamps inside the packet (the same base as the traces).
+   * The event timestamp may use a different base, so it is only used through a learned offset.
+   */
+  private packetTime(m: AnyObj, packetTsUs: unknown): number {
+    let maxUs = -Infinity;
+    const scan = (arr: AnyObj[] | undefined) => { for (const x of arr ?? []) { const u = toNum(x?.timestamp); if (Number.isFinite(u) && u > 0 && u > maxUs) maxUs = u; } };
+    scan(m.breathing?.upperTrace); scan(m.breathing?.lowerTrace); scan(m.breathing?.rate);
+    scan(m.cardio?.arterialPressureTrace); scan(m.cardio?.pulseRate); scan(m.cardio?.hrv);
+    scan(m.face?.talking); scan(m.face?.blinking); scan(m.face?.landmarks); scan(m.eda?.trace);
+    const pts = toNum(packetTsUs);
+    let t: number;
+    if (Number.isFinite(maxUs)) {
+      t = this.sec(maxUs);
+      if (Number.isFinite(pts)) this.pktOffsetUs = pts - maxUs;
+    } else if (Number.isFinite(pts) && this.pktOffsetUs !== null && this.t0Us !== null) {
+      t = (pts - this.pktOffsetUs - this.t0Us) / 1e6;
+    } else t = this.lastT;
+    if (!Number.isFinite(t) || t < this.lastT) t = this.lastT; // never run backwards
+    this.lastT = t;
+    return t;
+  }
+
   packet(m: AnyObj, packetTsUs: unknown): Packet {
-    const t = this.sec(packetTsUs);
+    const t = this.packetTime(m, packetTsUs);
     const cardio = m.cardio ?? {};
     const br = m.breathing ?? {};
     const face = m.face ?? {};

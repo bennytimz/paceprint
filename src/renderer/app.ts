@@ -267,7 +267,8 @@ const CHECKS: { id: string; label: string; bad: (codes: number, reasons: Set<str
   { id: 'quiet', label: 'Not talking', bad: (_c, r) => r.has('talking') },
 ];
 
-function currentCode(t: number) { return latest.code >= 0 && t - latest.codeT < 3 ? latest.code : (lastPacketT === null && !replay ? 1 : 0); }
+// sticky: the SDK may report a state once and keep it until it changes
+function currentCode(_t: number) { return latest.code >= 0 ? latest.code : (lastPacketT === null && !replay ? 1 : 0); }
 
 function renderSetup(t: number) {
   if (!protocol) return;

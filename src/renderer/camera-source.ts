@@ -22,7 +22,8 @@ export class CameraSource implements CaptureSource {
 
   async start(listener: Listener) {
     const key: string = await window.paceprint.prepareLive();
-    const t = () => (performance.now() - this.wallStart) / 1000;
+    // status/validation/error events are stamped on the stream clock by arrival (see normalize.ts)
+    const t = () => (this.lastPacketT === null ? 0 : this.lastPacketT + (performance.now() - this.lastPacketWall) / 1000);
     const full = [...breathingMetrics, ...cardioMetrics, ...faceMetrics, ...edaMetrics];
     try {
       await this.open(key, full, listener, t);
@@ -35,17 +36,15 @@ export class CameraSource implements CaptureSource {
     }
   }
 
-  private wallStart = performance.now();
+  private lastPacketT: number | null = null;
+  private lastPacketWall = 0;
 
   private async open(key: string, metrics: number[], listener: Listener, t: () => number) {
     const sdk = new SmartSpectraSDK({ apiKey: key, requestedMetrics: metrics, enableTelemetry: false });
     this.sdk = sdk;
     sdk.on('streamAvailable', (s: MediaStream) => this.onStream(s));
     sdk.on('processingStatus', (status: number) => listener({ type: 'status', t: t(), status }));
-    sdk.on('validationStatus', (code: number, ts: number, hint: string) => {
-      const tt = this.norm.sec(ts);
-      listener({ type: 'validation', t: Number.isFinite(tt) ? tt : t(), code, hint });
-    });
+    sdk.on('validationStatus', (code: number, _ts: number, hint: string) => listener({ type: 'validation', t: t(), code, hint }));
     sdk.on('error', (code: number, message: string, retryable: boolean) => {
       // 13 = kMetricNotAuthorized, 3 = kConfigurationFailed: the key may not be provisioned for
       // cardio. Fall back once to breathing + face (Plan C scoring), instead of failing.
@@ -61,7 +60,11 @@ export class CameraSource implements CaptureSource {
     sdk.on('metrics', (buf: Uint8Array, ts: number) => {
       try {
         const m = decodeMetrics(buf);
-        if (m && !(m instanceof Uint8Array)) listener({ type: 'packet', p: this.norm.packet(m, ts) });
+        if (m && !(m instanceof Uint8Array)) {
+          const p = this.norm.packet(m, ts);
+          this.lastPacketT = p.t; this.lastPacketWall = performance.now();
+          listener({ type: 'packet', p });
+        }
       } catch (e) { this.onLog(`decode failed: ${e}`); }
     });
     await sdk.start();
