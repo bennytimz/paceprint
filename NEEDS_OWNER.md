@@ -64,7 +64,7 @@ npm run mouth-contrast
 ```
 Then Claude runs the fixed test (`scripts/eval-mouth-detector.ts`), which prints ADOPT or REJECT.
 
-## 1h. Talk contrast in the clean setup (60 s of camera, about 2 credits; 85 left)
+## 1h. Talk contrast in the clean setup: DONE (23:25; burst-tolerance rule rejected, 73 % of reading windows caught, needs 90 %)
 Tests the burst-tolerance rule (docs/decisions.md). Exactly the setup of talk check 2 (23:13), which got
 the flag down to 21 %, with only your face in view. 20 s silent, mouth closed; 20 s reading the sentence aloud;
 20 s silent.

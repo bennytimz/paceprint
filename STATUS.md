@@ -133,6 +133,12 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - 5 new tests (tests/talking.test.ts); 70 pass.
 - Control half run after the rule was committed (68416e0): silent 5/min windows refused **2 % of 54** (limit 5 %). No verdict until the clean-setup reading run (NEEDS_OWNER 1h). Script fixes after commit, none touching the rule or pass checks: `--control-only` mode, file-stamp guard by regex (a stray argument passed the old text comparison), startup line now describes the rule in seconds.
 
+## Talk contrast 3, clean setup (Sat Nov 21, 23:23): burst tolerance REJECTED
+- 10/10 signals, no "Two faces". SDK flag: silent 0 %, reading 70 % (13 bursts, longest 4.3 s), silent again 8 %. In this setup the flag does separate silence from speech.
+- Fixed test, unchanged: reading windows refused 73 % of 15 (needs ≥ 90 %): FAIL; silent control 2 % of 54: PASS. REJECT, not adopted; logged in docs/decisions.md. Reading flagged 70 % here, below the 96–100 % of the noisy runs the threshold came from.
+- Per-packet talking stays in validity, unchanged. A looser rule would need a new pre-registered test on a fresh reading run.
+- Credits 85 → 84. Recording: recordings/talkcontrast-2026-11-21T22-24-30-280Z.* (gitignored). No coupling looked at.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
