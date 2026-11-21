@@ -24,7 +24,10 @@ relative and uncalibrated, never blood pressure) and builds its own beat-to-beat
    pacer's fill curve over lags 0 to 2.5 s. Score = best |r| (polarity of the trace is not guaranteed).
    A pace with follow score < 0.5 is excluded: you weren't breathing at that pace, so it says nothing about it.
 3. **Time to lock.** First moment a rolling 15 s follow score ≥ 0.6, measured from the start of the pace
-   (including the 30 s settle).
+   (including the 30 s settle). Only windows lying wholly inside trusted time are read: settle time is
+   validity-checked like measuring time, and a refused stretch (covered lens, motion, ...) is never read.
+   If lock is first seen after a refused stretch it is shown as an upper bound ("≤ 24 s"); with no fully
+   trusted 15 s window it is "not enough trusted data"; trusted time that never locks shows "—".
 4. **Beats.** Pressure waveform resampled to 30 Hz, band-passed 0.7 to 3.2 Hz, peaks ≥ 0.33 s apart and
    above 0.3 SD, refined by parabolic interpolation.
 5. **Beat-to-beat heart rate.** Inter-beat intervals outside 40 to 110 bpm are dropped, as is any beat more

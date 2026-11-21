@@ -69,13 +69,25 @@ export function adherence(trace: Sample[], pacer: Sample[], a: number, b: number
   return best;
 }
 
-/** Seconds from `start` until a rolling window of adherence first stays ≥ threshold. NaN if never. */
-export function timeToLock(trace: Sample[], pacer: Sample[], start: number, end: number, bpm: number): number {
+/** locked: a real time to lock. bound: lock first seen after refused time, so it happened by then at the
+ *  latest. never: trusted windows existed but none reached lock. untrusted: no fully trusted window at all. */
+export type LockStatus = 'locked' | 'bound' | 'never' | 'untrusted';
+
+/** Seconds from `start` until a rolling window of adherence first reaches the lock threshold, using only
+ *  windows that lie wholly inside trusted time; refused stretches (covered lens, motion, ...) are never read. */
+export function timeToLock(trace: Sample[], pacer: Sample[], start: number, end: number, bpm: number, trusted: Segment[]): { t: number; status: LockStatus } {
   const w = ANALYSIS.lockWindowS;
+  const covered = (a: number, b: number) => trusted.some(([x, y]) => a >= x - 1e-9 && b <= y + 1e-9);
+  let anyWindow = false;
   for (let t = start + w; t <= end; t += 1) {
-    if (adherence(trace, pacer, t - w, t, bpm) >= ANALYSIS.lockThreshold) return Math.max(0, t - w - start + w / 2);
+    const a = t - w;
+    if (!covered(a, t)) continue;
+    anyWindow = true;
+    if (adherence(trace, pacer, a, t, bpm) >= ANALYSIS.lockThreshold) {
+      return { t: Math.max(0, a - start + w / 2), status: covered(start, a) ? 'locked' : 'bound' };
+    }
   }
-  return NaN;
+  return { t: NaN, status: anyWindow ? 'never' : 'untrusted' };
 }
 
 // ---------------------------------------------------------------------------
@@ -184,6 +196,8 @@ export interface StageInput {
   felt?: number;        // felt-ease 1..5
   /** SDK talking flag per packet (1 = talking), for the audit line; never used to refuse or score */
   talk?: Sample[];
+  /** trusted intervals from the start of settle to the end of measuring, for time to lock (falls back to `valid`) */
+  lockValid?: Segment[];
 }
 
 export interface StageResult {
@@ -192,6 +206,8 @@ export interface StageResult {
   validSeconds: number;
   adherence: number;
   lockTime: number;
+  /** how far time to lock can be trusted (see timeToLock) */
+  lockStatus?: LockStatus;
   coupling: Coupling | null;
   beatsKept: number;
   felt?: number;
@@ -318,7 +334,9 @@ export function analyzeStage(s: StageInput, hasCardio: boolean): StageResult {
       if (Number.isFinite(ad)) { num += ad * (b - a); den += b - a; }
     }
     base.adherence = den ? num / den : NaN;
-    base.lockTime = timeToLock(trace, s.pacer, s.start, s.end, s.bpm);
+    const lock = timeToLock(trace, s.pacer, s.start, s.end, s.bpm, s.lockValid ?? s.valid);
+    base.lockTime = lock.t;
+    base.lockStatus = lock.status;
     if (!(base.adherence >= ANALYSIS.adherenceMin)) {
       return { ...base, status: 'excluded', reason: 'Breathing did not follow the guide closely enough to compare this pace.' };
     }

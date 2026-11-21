@@ -145,6 +145,11 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - README, consent doc, post, demo script, analysis doc and CLAUDE.md Rule 8 updated. 76 tests pass.
 - The Judge Mode GIF still shows the old "Paused: Talking" card (NEEDS_OWNER 1i).
 
+## Time to lock reads only trusted data (Sat Nov 21, 23:42)
+- Settle is now validity-checked for time to lock; refused stretches are never read. Result shows "≤ N s" when lock was first seen after a refusal, "not enough trusted data" when no 15 s trusted window exists. No threshold changed; not part of the ranking.
+- Safe moment for the GIF's on-screen refusal: the guided session after the result (unscored). Settle is still not the place: it now refuses correctly, but costs that pace its time to lock.
+- 8 new tests (tests/lock-trusted.test.ts); 84 pass.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).

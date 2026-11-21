@@ -573,6 +573,14 @@ function talkNote(stages: StageResult[], best: number | null): string {
   return t;
 }
 
+/** Time to lock, read only from trusted time: a refused stretch is never turned into a number. */
+function lockCell(s: StageResult): string {
+  if (s.lockStatus === 'untrusted') return '<span class="muted" title="No 15-second stretch of trusted data in this pace">not enough trusted data</span>';
+  if (!Number.isFinite(s.lockTime)) return '<span title="Did not lock during trusted time">—</span>';
+  const v = `${Math.round(s.lockTime)} s`;
+  return s.lockStatus === 'bound' ? `<span title="Lock was first seen after a refused stretch, so it happened by this time at the latest">≤ ${v}</span>` : v;
+}
+
 function talkCell(s: StageResult): string {
   if (s.status === 'excluded' || !Number.isFinite(s.talkShare)) return '—';
   const pct = `${Math.round(s.talkShare! * 100)}%`;
@@ -582,14 +590,14 @@ function talkCell(s: StageResult): string {
 function stageRow(s: StageResult, best: number | null): string {
   const excl = s.status === 'excluded';
   const isBest = !excl && best !== null && Math.abs(s.bpm - best) < 0.26;
-  return `<tr class="${excl ? 'excl' : ''} ${isBest ? 'best' : ''} ${!excl && s.talkCaveat ? 'caveat' : ''}"><td>${s.bpm.toFixed(1)}/min</td><td>${Number.isFinite(s.adherence) ? Math.round(s.adherence * 100) + '%' : '—'}</td><td>${Number.isFinite(s.lockTime) ? Math.round(s.lockTime) + ' s' : '—'}</td><td>${s.coupling ? s.coupling.amplitude.toFixed(1) + ' bpm' : '—'}${!excl && s.blocks.some((b) => Number.isFinite(b.amplitude)) ? ` <span class="parts" title="the same measure in each 30-second part">(${s.blocks.map((b) => (Number.isFinite(b.amplitude) ? b.amplitude.toFixed(1) : '–')).join(' · ')})</span>` : ''}</td><td>${s.coupling ? s.coupling.plv.toFixed(2) : '—'}</td><td>${s.felt ?? '—'}</td><td>${talkCell(s)}</td><td>${excl ? `Not read: ${escapeHtml(s.reason ?? '')}` : s.talkCaveat ? 'Trusted, caveated' : 'Trusted'}</td></tr>`;
+  return `<tr class="${excl ? 'excl' : ''} ${isBest ? 'best' : ''} ${!excl && s.talkCaveat ? 'caveat' : ''}"><td>${s.bpm.toFixed(1)}/min</td><td>${Number.isFinite(s.adherence) ? Math.round(s.adherence * 100) + '%' : '—'}</td><td>${lockCell(s)}</td><td>${s.coupling ? s.coupling.amplitude.toFixed(1) + ' bpm' : '—'}${!excl && s.blocks.some((b) => Number.isFinite(b.amplitude)) ? ` <span class="parts" title="the same measure in each 30-second part">(${s.blocks.map((b) => (Number.isFinite(b.amplitude) ? b.amplitude.toFixed(1) : '–')).join(' · ')})</span>` : ''}</td><td>${s.coupling ? s.coupling.plv.toFixed(2) : '—'}</td><td>${s.felt ?? '—'}</td><td>${talkCell(s)}</td><td>${excl ? `Not read: ${escapeHtml(s.reason ?? '')}` : s.talkCaveat ? 'Trusted, caveated' : 'Trusted'}</td></tr>`;
 }
 
 async function saveSummary() {
   if (resultSaved || info.demo || !protocol?.result) return;
   resultSaved = true;
   const p = protocol;
-  const strip = (s: StageResult | null) => s && ({ id: s.id, bpm: s.bpm, status: s.status, reason: s.reason, validSeconds: Math.round(s.validSeconds), adherence: s.adherence, lockTime: s.lockTime, felt: s.felt, swing: s.coupling?.amplitude, plv: s.coupling?.plv, meanHr: s.coupling?.meanHr, talkShare: s.talkShare, talkCaveat: s.talkCaveat });
+  const strip = (s: StageResult | null) => s && ({ id: s.id, bpm: s.bpm, status: s.status, reason: s.reason, validSeconds: Math.round(s.validSeconds), adherence: s.adherence, lockTime: s.lockTime, lockStatus: s.lockStatus, felt: s.felt, swing: s.coupling?.amplitude, plv: s.coupling?.plv, meanHr: s.coupling?.meanHr, talkShare: s.talkShare, talkCaveat: s.talkCaveat });
   await api.saveSession({
     id: sessionId, createdAt: new Date().toISOString(), mode: p.result!.mode, bestPace: p.result!.bestPace, certainty: p.result!.certainty,
     vsBaseline: p.result!.vsBaseline, baseline: strip(p.baselineResult), stages: p.stageResults.map(strip),

@@ -36,7 +36,11 @@ export interface PhaseState {
   bpm: number;       // current pacer pace (0 = free breathing)
 }
 
-interface StageBuf { valid: Segment[]; start: number; measureStart: number; end: number; felt?: number; openSince: number | null }
+interface StageBuf {
+  valid: Segment[]; start: number; measureStart: number; end: number; felt?: number; openSince: number | null;
+  /** trusted time from settle start to measure end, for time to lock only */
+  lockValid: Segment[]; lockOpen: number | null;
+}
 
 export type MarkerFn = (e: Extract<StreamEvent, { type: 'marker' }>) => void;
 
@@ -154,6 +158,12 @@ export class Protocol {
       if (ok && buf.openSince === null) buf.openSince = Math.max(dtStart, this.windowStart());
       if (!ok && buf.openSince !== null) { buf.valid.push([buf.openSince, t]); buf.openSince = null; }
     }
+    // trusted time across settle and measure, so time to lock never reads a refused stretch
+    const st = this.phase.name === 'settle' || this.phase.name === 'measure' ? this.stages[this.phase.stage] : null;
+    if (st) {
+      if (ok && st.lockOpen === null) st.lockOpen = Math.max(dtStart, st.start);
+      if (!ok && st.lockOpen !== null) { st.lockValid.push([st.lockOpen, t]); st.lockOpen = null; }
+    }
   }
 
   private windowStart(): number {
@@ -212,10 +222,14 @@ export class Protocol {
     this.closeBuf(t);
     const prev = this.phase;
     if (prev.name === 'baseline' && this.baseline) this.baseline.end = t;
-    if (prev.name === 'measure') this.stages[prev.stage].end = t;
+    if (prev.name === 'measure') {
+      const st = this.stages[prev.stage];
+      st.end = t;
+      if (st.lockOpen !== null) { st.lockValid.push([st.lockOpen, t]); st.lockOpen = null; }
+    }
     this.phase = { name, start: t, stage, bpm };
-    if (name === 'baseline') this.baseline = { valid: [], start: t, measureStart: t, end: t, openSince: null };
-    if (name === 'settle') this.stages[stage] = { valid: [], start: t, measureStart: t + this.cfg.settleS, end: t, openSince: null };
+    if (name === 'baseline') this.baseline = { valid: [], start: t, measureStart: t, end: t, openSince: null, lockValid: [], lockOpen: null };
+    if (name === 'settle') this.stages[stage] = { valid: [], start: t, measureStart: t + this.cfg.settleS, end: t, openSince: null, lockValid: [], lockOpen: null };
     if (name === 'measure' && this.stages[stage]) this.stages[stage].measureStart = t;
     if (name === 'result') this.computeResult();
     if (!fromMarker) this.onMarker?.({ type: 'marker', t, kind: 'phase', data: { name, stage, bpm } });
@@ -236,6 +250,7 @@ export class Protocol {
       upper: this.slice(this.upper, s.start, s.end), lower: this.slice(this.lower, s.start, s.end),
       pressure: this.slice(this.pressure, s.measureStart, s.end), pacer: this.slice(this.pacerFill, s.start, s.end),
       talk: this.slice(this.talk, s.measureStart, s.end),
+      lockValid: s.lockOpen !== null ? [...s.lockValid, [s.lockOpen, Math.max(s.lockOpen, this.now)]] : s.lockValid,
     };
   }
 
