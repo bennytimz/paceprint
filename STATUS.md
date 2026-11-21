@@ -21,9 +21,13 @@ Claude must not turn on the camera or spend trial credits; all camera runs are o
 - Brief moved to BRIEF.private.md (gitignored); public-safe CLAUDE.md. Camera off at result; recording saved at result, end and Stop; promote-recording script ready. 20 tests pass.
 - Prior art (Presage Coherence app, Lehrer 2000, pace apps; no "first" claims); SDK claims aligned (unused quotient weight removed from code).
 - Accessibility pass (labels, focus, Esc order, reduced motion); tests for Plan C fallback, "no reliable result", validity timing, all 16 codes: 28 pass.
+- README GIF (Judge Mode, labelled simulated); Judge Mode no longer persists settings; labels say simulated vs recorded.
+- Store tests (delete one, delete everything, id sanitizing): 32 tests pass.
+- Clean-clone check (Sat ~01:25): npm ci, test, typecheck, build, Judge Mode all OK without .env or the private brief.
 
 ## Next
-- Polish without the camera: README GIF from Judge Mode, visual review of every screen, post draft details.
+- Waiting on owner: daylight spike (#1), credits answer (#2), the one live run (#3). Then promote the real recording, paste verify-sdk output, regenerate the GIF from the real session.
+- Without the camera: voice-over clips from docs/demo-script.md once footage timing is known; item 14 (adaptive nudging) stays deferred.
 - After owner's live run: promote the real recording to Judge Mode, paste verify-sdk output into README.
 
 ## Blockers / risks
