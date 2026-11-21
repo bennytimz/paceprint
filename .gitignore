@@ -163,3 +163,7 @@ dist-app/
 
 # Private working notes (never commit)
 BRIEF.private.md
+
+# demo video build output
+video-out/
+__pycache__/

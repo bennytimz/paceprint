@@ -1,6 +1,8 @@
-# Demo video script (target 2:45)
+# Demo video script (target 2:51)
 
-Voice: en-US-AriaNeural or en-US-JennyNeural via edge-tts (calm, warm). Subtitles = the narration lines.
+Voice: en-US-JennyNeural via edge-tts, rate -4%. Subtitles come from the same lines.
+**This table drives the video.** `scripts/make-video.py` reads it: the start of each Time cell is when that line
+begins in the final video, and the Narration cell is spoken and subtitled. To re-time, edit the start times here.
 Any Judge Mode footage must show its "Simulated session" / "Recorded session" banner on screen.
 
 | # | Time | On screen (OBS scene) | Narration |
@@ -13,16 +15,36 @@ Any Judge Mode footage must show its "Simulated session" / "Recorded session" ba
 | 6 | 1:40–1:50 | Felt-ease rating overlay, press 4 | After each pace I say how easy it felt. My body's answer and my own answer, side by side. |
 | 7 | 1:50–2:15 | Result: response curve, certainty badge, felt chart, table | The result: a response curve, my best-coupled pace, and an honest label. Clear peak, weak peak, or no clear peak today. Beside it, how each pace felt. If a pace didn't get enough clean data, it's marked "not read", never guessed. |
 | 8 | 2:15–2:30 | Guided session at the chosen pace, follow ring filling, belly hint | Then a five-minute guided session at my pace, with a live follow score. |
-| 9 | 2:30–2:38 | `src/core/analysis.ts` and the README signal table | Every SDK signal maps to code: beats from the pressure waveform, phase locking with breathing, a validity layer for every moment. |
-| 10 | 2:38–2:50 | "Your data" drawer → Delete everything; end card with repo link | Everything stays on this computer, and one click deletes it. Paceprint is a wellness tool, not a medical device. Find your pace. |
+| 9 | 2:30–2:39 | `src/core/analysis.ts` and the README signal table | Every SDK signal maps to code: beats from the pressure waveform, phase locking with breathing, a validity layer for every moment. |
+| 10 | 2:39–2:51 | "Your data" drawer → Delete everything; end card with repo link | Everything stays on this computer, and one click deletes it. Paceprint is a wellness tool, not a medical device. Find your pace. |
 
 ## Production steps (owner)
-1. OBS: record 1920×1080, 30 fps, the app window only (Window Capture). Record scenes 2–8 in one live take
-   (talk/move during pace 1), then a short take of scene 9 (VS Code) and scene 10.
-   The live sweep is ~12 minutes: keep recording; Claude/you cut it down in the edit.
-2. Voice-over (Claude can generate it):
+1. **OBS:** record 1920×1080, 30 fps, the app window only (Window Capture), no microphone. Record scenes 2–8 in
+   the one live take (talk/move during pace 1), then a short take of scene 9 (VS Code) and scene 10.
+   The live run is ~16 minutes: keep recording; it gets cut down in the edit.
+2. **Cut** the footage to ~2:50 so each scene starts at the time in the table (any editor; Clipchamp ships
+   with Windows). Export one file, e.g. `raw-cut.mp4`, with no audio needed.
+   Or change the start times in the table to match your cut instead.
+3. **Narrate, subtitle and export** (one command):
    ```powershell
-   pip install edge-tts
-   edge-tts --voice en-US-AriaNeural --file docs/narration.txt --write-media voice.mp3 --write-subtitles voice.srt
+   python scripts/make-video.py --video raw-cut.mp4
    ```
-3. Mux and burn subtitles (Claude will produce the exact ffmpeg command once the clip timings are known).
+   Output: `video-outpaceprint-demo.mp4` (1920×1080, 30 fps, H.264 + AAC, subtitles burned in), plus
+   `video-out
+arration.wav` and `video-outsubtitles.srt` (upload the .srt too if the host supports captions).
+   It prints each line's start and speech length, and **WARNING**s if a line runs into the next one or past
+   the end of the video. Fix by moving start times or trimming words, then run again (about 30 s).
+4. **Useful variants:**
+   ```powershell
+   python scripts/make-video.py --voice-only                       # just narration.wav + subtitles.srt
+   python scripts/make-video.py --video raw-cut.mp4 --at 5=1:31    # move line 5 without editing the table
+   python scripts/make-video.py --video clip.mp4 --lines 4,5 --at 4=0:00,5=0:25 --out test.mp4   # one part
+   python scripts/make-video.py --video raw-cut.mp4 --rate -8%     # slower voice
+   python scripts/make-video.py --video raw-cut.mp4 --voice en-US-AriaNeural
+   ```
+5. **Watch it once with the sound on** and check every line matches what is on screen at that moment
+   (especially line 5, the refusal, and line 7, the result).
+
+Install once: Python 3.9+, `pip install edge-tts`, and ffmpeg (`winget install Gyan.FFmpeg`, then open a new
+terminal). All three are already installed on the build machine. edge-tts sends only the narration text to
+Microsoft's online text-to-speech service; nothing from the app or any session.
