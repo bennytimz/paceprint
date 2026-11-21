@@ -35,6 +35,6 @@ docs/          spike, analysis, consent-and-data-handling, decisions, demo-scrip
 5. No cloud storage, analytics, accounts, or AI/LLM calls. SDK telemetry is turned off. Never claim "nothing leaves your device".
 6. Never store or send video or frames. Recordings are metric streams only and are opt-in.
 7. Coupling uses the beat-level pressure waveform, never the SDK's averaged pulse rate. The SDK (3.5) does not deliver inhale/exhale ratio, apnea, or a pulse-respiration quotient; do not claim to use them.
-8. Refuse data that can't be trusted (talking, motion, framing, flicker, low confidence, signal loss); never average it in or animate a fake signal.
+8. Refuse data that can't be trusted (motion, framing, flicker, low confidence, signal loss, pulse gaps); never average it in or animate a fake signal. Talking: the SDK flag is a live warning plus a per-pace audit share, never a refusal (docs/decisions.md, Rule 8 decision); the person confirms "I'll stay silent and still" before Start.
 9. Commits use the configured git user only, with no co-author or "Generated with" lines.
 10. Build everything ourselves; credit prior art in the README.

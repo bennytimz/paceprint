@@ -73,6 +73,10 @@ npm run talk-contrast
 ```
 Then Claude runs the fixed test (`scripts/eval-burst-tolerance.ts`): ADOPT or REJECT.
 
+## 1i. Re-record the Judge Mode GIF (no camera, no credits)
+`docs/media/paceprint-judge-mode.gif` shows the old "Paused: Talking" card. Talking is now a warning
+(docs/decisions.md, Rule 8 decision). Re-record with `npm run demo`; the README caption already says the GIF predates the change.
+
 ## 2. Ask Presage how many trial minutes you have — NEEDED BY: Sat Nov 21, 10:00
 The SDK has no way to read your remaining credits (it only raises `kCreditExhausted` when they run out).
 Options, quickest first:

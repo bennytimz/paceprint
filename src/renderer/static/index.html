@@ -66,6 +66,7 @@
             </ul>
           </details>
           <div class="warmup" id="warmup-setup"></div>
+          <label class="confirm"><input type="checkbox" id="confirm-still" /> I'll stay silent and still while measuring.</label>
           <button id="btn-begin" class="primary" disabled>Start (~11 min to your result)</button>
           <p class="muted small" id="setup-msg" role="status">Everything must be green for a few seconds.</p>
         </div>
@@ -94,6 +95,10 @@
             <strong id="refusal-title">Paused</strong>
             <span id="refusal-tip"></span>
             <small>This moment is not being used. The timer waits for good data.</small>
+          </div>
+          <div id="talk-warn" class="talk-warn" hidden role="status">
+            <strong>Talking?</strong>
+            <span id="talk-warn-tip"></span>
           </div>
         </div>
         <div class="signal-col">
@@ -143,6 +148,7 @@
           <figure><figcaption>Felt: how easy each pace felt</figcaption><div id="chart-felt"></div></figure>
         </div>
         <table class="stage-table" id="res-table"></table>
+        <p class="muted small" id="res-talk"></p>
         <p class="muted small" id="res-baseline"></p>
         <div id="res-history" class="history" hidden></div>
         <div class="row">

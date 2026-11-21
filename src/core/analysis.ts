@@ -28,6 +28,9 @@ export const ANALYSIS = {
   plvCeiling: 0.95,
   /** certainty thresholds, in bpm of heart-rate swing (physical units, easy to explain) */
   clear: { gap: 0.75, ratio: 1.15, gapSE: 2 },
+  /** a pace is marked caveated when the SDK talking flag was on for at least this share of its trusted
+   *  measuring time (display only; nothing is refused or re-ranked). docs/decisions.md, Rule 8 decision. */
+  talkCaveat: 0.4,
   weak: { gap: 0.3, ratio: 1.1 },
 };
 
@@ -179,6 +182,8 @@ export interface StageInput {
   pressure: Sample[];
   pacer: Sample[];      // pacer fill 0..1 (empty for baseline)
   felt?: number;        // felt-ease 1..5
+  /** SDK talking flag per packet (1 = talking), for the audit line; never used to refuse or score */
+  talk?: Sample[];
 }
 
 export interface StageResult {
@@ -194,6 +199,18 @@ export interface StageResult {
   reason?: string;
   /** the same coupling measured separately in each equal part of the clean measuring time (NaN = not read) */
   blocks: { amplitude: number; plv: number }[];
+  /** share of talking-flag packets inside the trusted measuring time that said "talking" (NaN = no flag data) */
+  talkShare?: number;
+  /** talkShare >= ANALYSIS.talkCaveat: shown as caveated on the result; does not change the score */
+  talkCaveat?: boolean;
+}
+
+/** Share of talking-flag packets inside the valid segments that said "talking" (NaN if none). */
+export function talkShare(talk: Sample[] | undefined, valid: Segment[]): number {
+  if (!talk?.length) return NaN;
+  let n = 0, on = 0;
+  for (const s of talk) if (inSegments(s.t, valid)) { n++; if (s.v > 0) on++; }
+  return n ? on / n : NaN;
 }
 
 /** Split valid segments into `n` consecutive parts of equal valid duration. */
@@ -285,7 +302,8 @@ export function dominantBreathHz(trace: Sample[], a: number, b: number): number 
 
 export function analyzeStage(s: StageInput, hasCardio: boolean): StageResult {
   const validSeconds = s.valid.reduce((acc, [a, b]) => acc + (b - a), 0);
-  const base: StageResult = { id: s.id, bpm: s.bpm, validSeconds, adherence: NaN, lockTime: NaN, coupling: null, beatsKept: 0, felt: s.felt, status: 'ok', blocks: [] };
+  const ts = talkShare(s.talk, s.valid);
+  const base: StageResult = { id: s.id, bpm: s.bpm, validSeconds, adherence: NaN, lockTime: NaN, coupling: null, beatsKept: 0, felt: s.felt, status: 'ok', blocks: [], talkShare: ts, talkCaveat: ts >= ANALYSIS.talkCaveat };
   const minValid = s.bpm > 0 ? ANALYSIS.minValidS : 30;
   if (validSeconds < minValid) return { ...base, status: 'excluded', reason: `Only ${Math.round(validSeconds)} s of trustworthy data (needs ${minValid} s).` };
 

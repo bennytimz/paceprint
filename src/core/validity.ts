@@ -1,17 +1,21 @@
 // Validity layer: decides, moment by moment, whether data may be used.
-// Never trusts SDK confidence alone: talking, motion, framing, flicker and signal loss
-// are checked independently. Invalid time is excluded, never averaged in.
+// Never trusts SDK confidence alone: motion, framing, flicker, signal loss and pulse gaps are checked
+// independently. Invalid time is excluded, never averaged in.
+// The SDK talking flag is a WARNING, not a refusal (docs/decisions.md, "Rule 8: talking is warned and
+// audited, not refused"): in our tests it fired during silence, and no detector passed its test. It is
+// shown live, and each pace's flagged share is reported on the result.
 import type { StreamEvent, Packet } from './types';
 import { validationMessage } from './validation-codes';
 
 export type ReasonId = 'lost' | 'validation' | 'talking' | 'motion' | 'noface' | 'lowconf' | 'flicker' | 'settling' | 'warming' | 'nopulse';
 
 export interface Reason { id: ReasonId; short: string; tip: string }
-export interface Verdict { ok: boolean; reasons: Reason[] }
+/** reasons refuse the moment; warnings are shown but do not refuse (today only the talking flag) */
+export interface Verdict { ok: boolean; reasons: Reason[]; warnings: Reason[] }
 
 export const VALIDITY = {
   lostAfter: 2.0,          // s without packets = signal lost
-  talkingHold: 2.0,        // s a talking flag keeps data invalid
+  talkingHold: 2.0,        // s a talking flag keeps the talking WARNING showing (it no longer refuses data)
   motionWindow: 1.5,       // s window for motion
   motionMax: 0.02,         // face centroid shift per packet, fraction of face width
   validationHold: 1.5,     // s a non-OK validation code keeps data invalid
@@ -71,6 +75,7 @@ export class ValidityMonitor {
 
   check(t: number = this.now): Verdict {
     const reasons: Reason[] = [];
+    const warnings: Reason[] = [];
     const add = (id: ReasonId, short: string, tip: string) => reasons.push({ id, short, tip });
     if (t - this.lastPacketT > VALIDITY.lostAfter) {
       add('lost', 'Signal lost', 'No reading from the camera right now. Visuals are frozen until it returns.');
@@ -80,7 +85,7 @@ export class ValidityMonitor {
         const m = validationMessage(code);
         add('validation', m.short, m.tip);
       }
-      if (t - this.lastTalkT < VALIDITY.talkingHold) add('talking', 'Talking', 'Stop talking for a moment. Speech moves the chest and hides breathing.');
+      if (t - this.lastTalkT < VALIDITY.talkingHold) warnings.push({ id: 'talking', short: 'Talking?', tip: 'The camera thinks you may be talking. Stay silent: speech moves the chest. Measuring continues; this is noted on your result.' });
       if (this.motion.some((m) => m.v > VALIDITY.motionMax)) add('motion', 'Moving', 'Hold still. Rest your arms and lean back.');
       if (this.lastFace === false) add('noface', 'No face', 'Face the camera so your whole face is in view.');
       const grace = this.startT !== null && t - this.startT < VALIDITY.confGrace;
@@ -101,12 +106,12 @@ export class ValidityMonitor {
     const uniq = reasons.filter((r) => (seen.has(r.short) ? false : (seen.add(r.short), true)));
     if (uniq.length) {
       this.lastBadT = t;
-      return { ok: false, reasons: uniq };
+      return { ok: false, reasons: uniq, warnings };
     }
     if (t - this.lastBadT < VALIDITY.settle) {
-      return { ok: false, reasons: [{ id: 'settling', short: 'Settling', tip: 'Good. Give it a second to settle.' }] };
+      return { ok: false, reasons: [{ id: 'settling', short: 'Settling', tip: 'Good. Give it a second to settle.' }], warnings };
     }
-    return { ok: true, reasons: [] };
+    return { ok: true, reasons: [], warnings };
   }
 }
 

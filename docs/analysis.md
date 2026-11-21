@@ -12,10 +12,13 @@ relative and uncalibrated, never blood pressure) and builds its own beat-to-beat
 ## Steps
 
 1. **Validity first** (`validity.ts`). Every moment is valid or refused: signal lost (> 2 s without
-   packets), any non-OK SDK ValidationCode (held 1.5 s), talking flag (held 2 s), face motion > 2 % of face
+   packets), any non-OK SDK ValidationCode (held 1.5 s), face motion > 2 % of face
    width per packet, no face, pressure confidence < 40 after a 15 s grace, flickering light (frame-to-frame
    brightness change > 1.2 %), plus a 2 s settle after any problem. Refused time is excluded, and the
-   measuring timer waits (up to 45 s extra) to collect 90 s of valid data.
+   measuring timer waits (up to 45 s extra) to collect 90 s of valid data. The SDK talking flag is a
+   warning only (shown live for 2 s after each flag); each stage reports the share of its trusted time
+   that was flagged (`talkShare`), caveated at ≥ 40 % on the result. It never refuses or re-ranks
+   (docs/decisions.md, Rule 8 decision).
 2. **Adherence / follow score.** Breathing trace (belly by default, chest if it follows clearly better)
    resampled to 10 Hz, band-passed 0.5× to 2.5× the pace frequency (zero-phase FFT), correlated with the
    pacer's fill curve over lags 0 to 2.5 s. Score = best |r| (polarity of the trace is not guaranteed).
@@ -72,7 +75,7 @@ certainty at most "weak". The guided session then uses the most comfortable well
   On simulated people: a strong modelled peak is clear at the right pace; a flat person with a drifting swing is
   never clear (5 seeds); a noisy person (small peak, heavy drift, extra beat noise) is never called clear more than
   one step from the modelled pace (6 seeds). A wider probe (12 noisy, 8 flat seeds) gave the same picture.
-- End-to-end tests with a simulated person (breathing as an oscillator pulled toward the pacer, heart-rate swing peaking at a chosen pace): the modelled best pace (5.5) is recovered; talking and motion are excluded and the window extended; a stage ruined by motion is excluded with a reason; a flat person gets "flat" or "weak", never "clear".
+- End-to-end tests with a simulated person (breathing as an oscillator pulled toward the pacer, heart-rate swing peaking at a chosen pace): the modelled best pace (5.5) is recovered; motion is excluded and the window extended; a talking flag on its own refuses nothing and changes no ranking; a stage ruined by motion is excluded with a reason; a flat person gets "flat" or "weak", never "clear".
 - **Not yet validated on real people.** The daylight spike and user tests will show how the method behaves on real webcam data. Results are a wellness estimate, not a clinical resonance-frequency assessment.
 
 ## Belly-first coaching (guided session)

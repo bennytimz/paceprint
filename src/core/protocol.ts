@@ -45,7 +45,7 @@ export class Protocol {
   readonly validity = new ValidityMonitor();
   readonly order: number[];
   phase: PhaseState = { name: 'setup', start: 0, stage: -1, bpm: 0 };
-  verdict: Verdict = { ok: false, reasons: [] };
+  verdict: Verdict = { ok: false, reasons: [], warnings: [] };
   now = 0;
   result: SweepResult | null = null;
   stageResults: StageResult[] = [];
@@ -58,6 +58,8 @@ export class Protocol {
   readonly pressure: Sample[] = [];
   readonly pacerFill: Sample[] = [];
   readonly pulseRate: Sample[] = [];
+  /** SDK talking flag per packet (1/0): audit only */
+  readonly talk: Sample[] = [];
   firstPacketT: number | null = null;
   lastPacketT = -Infinity;
   /** time each warm-up window has been filling with valid data */
@@ -93,6 +95,7 @@ export class Protocol {
       for (const s of p.lower) this.lower.push(s);
       for (const s of p.pressure) this.pressure.push(s);
       if (p.pulseRate) this.pulseRate.push({ t: p.pulseRate.t, v: p.pulseRate.v });
+      if (p.talking !== undefined) this.talk.push({ t: p.t, v: p.talking ? 1 : 0 });
       if (p.pressure.length) this.hasCardio = true;
     } else if (e.type === 'marker' && this.mode === 'follow') {
       this.applyMarker(e);
@@ -232,6 +235,7 @@ export class Protocol {
       valid: s.valid, felt: s.felt,
       upper: this.slice(this.upper, s.start, s.end), lower: this.slice(this.lower, s.start, s.end),
       pressure: this.slice(this.pressure, s.measureStart, s.end), pacer: this.slice(this.pacerFill, s.start, s.end),
+      talk: this.slice(this.talk, s.measureStart, s.end),
     };
   }
 
@@ -240,7 +244,7 @@ export class Protocol {
     this.baselineResult = b ? analyzeStage({
       id: 'baseline', bpm: 0, start: b.start, measureStart: b.start, end: b.end, valid: b.valid,
       upper: this.slice(this.upper, b.start, b.end), lower: this.slice(this.lower, b.start, b.end),
-      pressure: this.slice(this.pressure, b.start, b.end), pacer: [],
+      pressure: this.slice(this.pressure, b.start, b.end), pacer: [], talk: this.slice(this.talk, b.start, b.end),
     }, this.hasCardio) : null;
     this.stageResults = this.order.map((_, i) => {
       const inp = this.stageInput(i);

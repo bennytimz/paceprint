@@ -268,56 +268,64 @@ function enterPhaseUi(ph: PhaseName) {
 }
 
 // ------------------------------------------------------------------ setup check
-const CHECKS: { id: string; label: string; bad: (codes: number, reasons: Set<string>) => boolean }[] = [
+// `warn` items are shown but never block Start (the talking flag: docs/decisions.md, Rule 8 decision)
+const CHECKS: { id: string; label: string; warn?: boolean; bad: (codes: number, reasons: Set<string>) => boolean }[] = [
   { id: 'signal', label: 'Signal flowing from the SDK', bad: (_c, r) => r.has('lost') },
   { id: 'face', label: 'Face in view and centred', bad: (c, r) => r.has('noface') || [1, 2, 3, 4, 13, 14, 15, 16, 17].includes(c) },
   { id: 'chest', label: 'Chest in view', bad: (c) => c === 7 },
   { id: 'light', label: 'Even, steady light', bad: (c, r) => [5, 6].includes(c) || r.has('flicker') },
   { id: 'still', label: 'Holding still', bad: (c, r) => c === 12 || r.has('motion') || c === 10 },
-  { id: 'quiet', label: 'Not talking', bad: (_c, r) => r.has('talking') },
+  { id: 'quiet', label: 'Not talking (camera check; a warning only)', warn: true, bad: (_c, r) => r.has('talking') },
   { id: 'pulse', label: 'Pulse reading started (takes about 40 s)', bad: (_c, r) => r.has('warming') || r.has('nopulse') },
 ];
 
 // sticky: the SDK may report a state once and keep it until it changes
 function currentCode(_t: number) { return latest.code >= 0 ? latest.code : (lastPacketT === null && !replay ? 1 : 0); }
 
+/** refusal reasons plus warnings, for the checks' `bad` tests */
+function verdictIds(): Set<string> {
+  return new Set([...protocol!.verdict.reasons, ...protocol!.verdict.warnings].map((r) => r.id));
+}
+
 function renderSetup(t: number) {
   if (!protocol) return;
-  const reasons = new Set(protocol.verdict.reasons.map((r) => r.id));
+  const reasons = verdictIds();
   const code = currentCode(t);
   const noData = lastPacketT === null;
   const items = CHECKS.map((c) => ({ ...c, ok: !noData && !c.bad(code, reasons) }));
   const hint = (id: string) => {
     if (noData) return 'waiting…';
     if (id === 'face' || id === 'chest' || id === 'still' || id === 'light') return code ? validationMessage(code).tip : '';
-    const r = protocol!.verdict.reasons.find((x) => (id === 'quiet' ? x.id === 'talking' : id === 'pulse' ? x.id === 'warming' || x.id === 'nopulse' : x.id === id));
+    const r = [...protocol!.verdict.reasons, ...protocol!.verdict.warnings].find((x) => (id === 'quiet' ? x.id === 'talking' : id === 'pulse' ? x.id === 'warming' || x.id === 'nopulse' : x.id === id));
     return r?.tip ?? '';
   };
-  $('checklist').innerHTML = items.map((i) => `<li class="${i.ok ? 'ok' : ''}">${i.label}${i.ok ? '' : `<span class="hint">${escapeHtml(hint(i.id))}</span>`}</li>`).join('');
+  $('checklist').innerHTML = items.map((i) => `<li class="${i.ok ? 'ok' : i.warn && !noData ? 'warn' : ''}">${i.label}${i.ok ? '' : `<span class="hint">${escapeHtml(hint(i.id))}</span>`}</li>`).join('');
   $('setup-chips').innerHTML = chipsHtml(t);
   renderWarmup('warmup-setup');
-  const allOk = items.every((i) => i.ok) && protocol.verdict.ok;
+  const allOk = items.every((i) => i.ok || i.warn) && protocol.verdict.ok;
   if (allOk) setupGreenSince ??= t; else setupGreenSince = null;
   const ready = setupGreenSince !== null && t - setupGreenSince >= 3;
+  const confirm = $('confirm-still') as HTMLInputElement;
+  if (info.demo) { confirm.checked = true; confirm.disabled = true; }
   const b = $('btn-begin') as HTMLButtonElement;
   const wasDisabled = b.disabled;
-  b.disabled = !ready || info.demo;
+  b.disabled = !ready || !confirm.checked || info.demo;
   if (wasDisabled && !b.disabled) b.focus();
   if (info.demo) $('setup-msg').textContent = recording?.source === 'simulated' ? 'Simulated session: the modelled person starts once everything is green.' : 'Recorded session: the person pressed Start when everything was green.';
-  else $('setup-msg').textContent = ready ? 'All green. Press Start when you are comfortable.' : allOk ? 'Hold it there…' : 'Everything must be green for a few seconds.';
+  else $('setup-msg').textContent = ready ? (confirm.checked ? 'All green. Press Start when you are comfortable.' : "All green. Tick \u201cI'll stay silent and still\u201d to start.") : allOk ? 'Hold it there…' : 'Everything must be green for a few seconds.';
 }
-$('btn-begin').addEventListener('click', () => protocol?.beginBaseline());
+$('btn-begin').addEventListener('click', () => { if (($('confirm-still') as HTMLInputElement).checked) protocol?.beginBaseline(); });
 
 function escapeHtml(s: string) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!)); }
 
 function chipsHtml(t: number): string {
   if (!protocol) return '';
-  const reasons = new Set(protocol.verdict.reasons.map((r) => r.id));
+  const reasons = verdictIds();
   const code = currentCode(t);
   const noData = lastPacketT === null;
   return CHECKS.map((c) => {
-    const short = { signal: 'Signal', face: 'Face', chest: 'Chest', light: 'Light', still: 'Still', quiet: 'Quiet' }[c.id];
-    const cls = noData ? 'idle' : c.bad(code, reasons) ? 'bad' : '';
+    const short = { signal: 'Signal', face: 'Face', chest: 'Chest', light: 'Light', still: 'Still', quiet: 'Quiet', pulse: 'Pulse' }[c.id];
+    const cls = noData ? 'idle' : c.bad(code, reasons) ? (c.warn ? 'warn' : 'bad') : '';
     return `<span class="chip ${cls}">${short}</span>`;
   }).join('');
 }
@@ -392,6 +400,9 @@ function renderSession(t: number, heavy: boolean) {
     $('refusal-title').textContent = lost ? 'Signal lost' : r.id === 'settling' ? 'Settling' : `Paused: ${r.short}`;
     $('refusal-tip').textContent = r.tip;
   } else ref.hidden = true;
+  const talkWarn = p.verdict.warnings.find((w) => w.id === 'talking');
+  $('talk-warn').hidden = !talkWarn;
+  if (talkWarn) $('talk-warn-tip').textContent = talkWarn.tip;
 
   // follow ring
   if (heavy && t - lastFollowSample > 1) {
@@ -523,7 +534,8 @@ function showResult() {
   $('chart-felt').innerHTML = feltChart(r);
   $('res-spread').textContent = spreadNote(r);
   const rows = p.stageResults.map((s) => stageRow(s, r.bestPace));
-  $('res-table').innerHTML = `<thead><tr><th>Pace</th><th>Follow score</th><th>Time to lock</th><th>Heart-rhythm swing</th><th>Coupling (PLV)</th><th>Felt</th><th>Status</th></tr></thead><tbody>${rows.join('')}</tbody>`;
+  $('res-table').innerHTML = `<thead><tr><th>Pace</th><th>Follow score</th><th>Time to lock</th><th>Heart-rhythm swing</th><th>Coupling (PLV)</th><th>Felt</th><th title="Share of trusted measuring time the camera flagged as talking">Talking flag</th><th>Status</th></tr></thead><tbody>${rows.join('')}</tbody>`;
+  $('res-talk').textContent = talkNote(p.stageResults, r.bestPace);
   const b = p.baselineResult;
   $('res-baseline').textContent = b?.coupling
     ? `Baseline (your normal breathing): heart-rhythm swing ${b.coupling.amplitude.toFixed(1)} bpm, average pulse ${b.coupling.meanHr.toFixed(0)} bpm.${r.vsBaseline ? ` At the best pace the swing was ${r.vsBaseline.toFixed(1)}× your baseline.` : ''}`
@@ -548,17 +560,36 @@ function spreadNote(r: SweepResult): string {
   return t;
 }
 
+/** Audit line for the talking flag: it never removes data or changes the ranking, so the result says how much of each pace it flagged. */
+function talkNote(stages: StageResult[], best: number | null): string {
+  const read = stages.filter((s) => s.status !== 'excluded' && Number.isFinite(s.talkShare));
+  if (!read.length) return '';
+  const cav = read.filter((s) => s.talkCaveat);
+  let t = `Talking flag: the share of each pace's trusted measuring time the camera flagged as talking. It does not remove data or change the ranking, because in our tests it also fired during silence. Paces at ${Math.round(ANALYSIS.talkCaveat * 100)}% or more are marked caveated.`;
+  if (cav.length) {
+    t += ` Caveated: ${cav.map((s) => `${s.bpm.toFixed(1)}/min`).join(', ')}. If you were silent, it was likely a false alarm; if you talked, treat ${cav.length === 1 ? 'that pace' : 'those paces'} with caution.`;
+    if (best !== null && cav.some((s) => Math.abs(s.bpm - best) < 0.26)) t += ' Your best pace is one of them.';
+  } else t += ' No pace was caveated.';
+  return t;
+}
+
+function talkCell(s: StageResult): string {
+  if (s.status === 'excluded' || !Number.isFinite(s.talkShare)) return '—';
+  const pct = `${Math.round(s.talkShare! * 100)}%`;
+  return s.talkCaveat ? `<span class="caveat" title="Flagged for ${pct} of this pace's trusted time: treat with caution if you talked">${pct} · caveated</span>` : pct;
+}
+
 function stageRow(s: StageResult, best: number | null): string {
   const excl = s.status === 'excluded';
   const isBest = !excl && best !== null && Math.abs(s.bpm - best) < 0.26;
-  return `<tr class="${excl ? 'excl' : ''} ${isBest ? 'best' : ''}"><td>${s.bpm.toFixed(1)}/min</td><td>${Number.isFinite(s.adherence) ? Math.round(s.adherence * 100) + '%' : '—'}</td><td>${Number.isFinite(s.lockTime) ? Math.round(s.lockTime) + ' s' : '—'}</td><td>${s.coupling ? s.coupling.amplitude.toFixed(1) + ' bpm' : '—'}${!excl && s.blocks.some((b) => Number.isFinite(b.amplitude)) ? ` <span class="parts" title="the same measure in each 30-second part">(${s.blocks.map((b) => (Number.isFinite(b.amplitude) ? b.amplitude.toFixed(1) : '–')).join(' · ')})</span>` : ''}</td><td>${s.coupling ? s.coupling.plv.toFixed(2) : '—'}</td><td>${s.felt ?? '—'}</td><td>${excl ? `Not read: ${escapeHtml(s.reason ?? '')}` : 'Trusted'}</td></tr>`;
+  return `<tr class="${excl ? 'excl' : ''} ${isBest ? 'best' : ''} ${!excl && s.talkCaveat ? 'caveat' : ''}"><td>${s.bpm.toFixed(1)}/min</td><td>${Number.isFinite(s.adherence) ? Math.round(s.adherence * 100) + '%' : '—'}</td><td>${Number.isFinite(s.lockTime) ? Math.round(s.lockTime) + ' s' : '—'}</td><td>${s.coupling ? s.coupling.amplitude.toFixed(1) + ' bpm' : '—'}${!excl && s.blocks.some((b) => Number.isFinite(b.amplitude)) ? ` <span class="parts" title="the same measure in each 30-second part">(${s.blocks.map((b) => (Number.isFinite(b.amplitude) ? b.amplitude.toFixed(1) : '–')).join(' · ')})</span>` : ''}</td><td>${s.coupling ? s.coupling.plv.toFixed(2) : '—'}</td><td>${s.felt ?? '—'}</td><td>${talkCell(s)}</td><td>${excl ? `Not read: ${escapeHtml(s.reason ?? '')}` : s.talkCaveat ? 'Trusted, caveated' : 'Trusted'}</td></tr>`;
 }
 
 async function saveSummary() {
   if (resultSaved || info.demo || !protocol?.result) return;
   resultSaved = true;
   const p = protocol;
-  const strip = (s: StageResult | null) => s && ({ id: s.id, bpm: s.bpm, status: s.status, reason: s.reason, validSeconds: Math.round(s.validSeconds), adherence: s.adherence, lockTime: s.lockTime, felt: s.felt, swing: s.coupling?.amplitude, plv: s.coupling?.plv, meanHr: s.coupling?.meanHr });
+  const strip = (s: StageResult | null) => s && ({ id: s.id, bpm: s.bpm, status: s.status, reason: s.reason, validSeconds: Math.round(s.validSeconds), adherence: s.adherence, lockTime: s.lockTime, felt: s.felt, swing: s.coupling?.amplitude, plv: s.coupling?.plv, meanHr: s.coupling?.meanHr, talkShare: s.talkShare, talkCaveat: s.talkCaveat });
   await api.saveSession({
     id: sessionId, createdAt: new Date().toISOString(), mode: p.result!.mode, bestPace: p.result!.bestPace, certainty: p.result!.certainty,
     vsBaseline: p.result!.vsBaseline, baseline: strip(p.baselineResult), stages: p.stageResults.map(strip),

@@ -8,9 +8,9 @@ It is a wellness tool for self-awareness. **Not a medical device**, not for diag
 
 > Built for the DEV x Presage SmartSpectra SDK Challenge (#presagechallenge).
 
-![Paceprint in Judge Mode: the measuring timer pauses with "Paused: Talking", readings drop to Not read, the refused stretch is shaded on the traces, then the result curve with felt ease beside it](docs/media/paceprint-judge-mode.gif)
+![Paceprint in Judge Mode: the measuring timer pauses when the signal weakens, readings drop to Not read, the refused stretch is shaded on the traces, then the result curve with felt ease beside it](docs/media/paceprint-judge-mode.gif)
 
-*Judge Mode with the bundled **simulated** session (a modelled person, labelled as such in the app). The person talks during the first pace: Paceprint pauses, says why, and excludes that stretch.*
+*Judge Mode with the bundled **simulated** session (a modelled person, labelled as such in the app). The person talks during the first pace and the pulse signal weakens: Paceprint pauses, says why, and excludes that stretch. (Recorded before the talking flag became a warning: the app now also shows a **Talking?** warning there, and the result lists each pace's flagged share.)*
 
 ## Who it's for
 A student in exam week who has tried a breathing app and wondered whether the pace it prescribes is right for them. Paceprint answers with their own data, and says so plainly when the data isn't good enough.
@@ -29,7 +29,7 @@ npm install                     # about 1 minute; downloads ~350 MB, mostly the 
 npm run demo
 ```
 The first run also downloads the Electron binary once (~100 MB). After that, Judge Mode needs no network.
-Plays a bundled session through the real app and analysis code. A banner says what it is: today the bundled fixture is a **simulated person** (`tests/fixtures/judge-simulated.json`), clearly labelled; it includes a talking moment and a movement moment so you can see the app refuse that data. Use the 1×/4×/12×/30× buttons to change speed.
+Plays a bundled session through the real app and analysis code. A banner says what it is: today the bundled fixture is a **simulated person** (`tests/fixtures/judge-simulated.json`), clearly labelled; it includes a talking moment (a **Talking?** warning, plus a weak-signal stretch that is refused) and a movement moment (refused), so you can see both. Use the 1×/4×/12×/30× buttons to change speed.
 
 ### Live, with your webcam
 Also needed: a webcam and a SmartSpectra API key from <https://physiology.presagetech.com/>. We built and tested on Windows 11; the SDK also lists macOS (Apple Silicon) and Linux x64, which we have not tested.
@@ -80,10 +80,10 @@ npm run typecheck
 |---|---|---|
 | `cardio.arterialPressureTrace` (beat-level pulse waveform; relative, uncalibrated, never blood pressure) | Detects each heartbeat, builds beat-to-beat heart rate, measures the heart-rate swing and phase-locking at each pace. This is the core measurement. | `src/core/analysis.ts` (`detectBeats`, `heartRateSeries`, `coupling`) |
 | `breathing.lowerTrace` / `upperTrace` (belly / chest) | Follow score (are you breathing with the guide?), time to lock, breathing phase for coupling; live trace on screen | `analysis.ts` (`adherence`, `timeToLock`), `renderer/charts.ts` |
-| `face.talking` | Refuses data while you talk (speech moves the chest); the timer waits | `src/core/validity.ts` |
+| `face.talking` | Shown live as a **Talking?** warning (never refuses data: in our tests it also fired during silence). Each pace's flagged share is an audit line on the result; paces at 40 % or more are marked caveated | `validity.ts` (warning), `analysis.ts` (`talkShare`), `renderer/app.ts` |
 | `face.landmarks` | Face motion as a fraction of face width; refuses data while you move | `src/core/normalize.ts`, `validity.ts` |
 | `validationStatus` (all 16 codes) | Each mapped to a plain instruction ("Hold still", "Add more even light", "Sit back so your chest is in view"); setup checklist and live chips | `src/core/validation-codes.ts`, `renderer/app.ts` |
-| Confidence / `stable` flags | Pulse and pressure must reach confidence 40, breathing 45, HRV 50 before a number is shown as Trusted. Never trusted alone: talking, motion and flicker are checked independently | `validity.ts`, `renderer/app.ts` (`renderReadouts`) |
+| Confidence / `stable` flags | Pulse and pressure must reach confidence 40, breathing 45, HRV 50 before a number is shown as Trusted. Never trusted alone: motion and flicker are checked independently | `validity.ts`, `renderer/app.ts` (`renderReadouts`) |
 | `cardio.pulseRate` (12 s average), `breathing.rate` (30 s), `cardio.hrv` (60 s) | Shown as context with Trusted / Not read states and a warm-up strip; **not** used for coupling, because a 12 s average erases the swing we measure | `renderer/app.ts` |
 | `eda.trace` | Warm-up strip only (35 s window); not interpreted | `validity.ts` (`WARMUP`) |
 | `processingStatus`, `error` (incl. credits exhausted, auth) | Friendly stop screens; automatic fallback to breathing-only if the key isn't provisioned for cardio | `renderer/camera-source.ts`, `renderer/app.ts` |
@@ -91,7 +91,9 @@ npm run typecheck
 Not used, on purpose: expressions (no emotion inference), and the SDK's optional LLM "insights" (no AI services). Paceprint does not use an inhale/exhale ratio, apnea detection, or an SDK coupling score: SDK 3.5 does not deliver them (`docs/spike.md`). Every coupling number is Paceprint's own, computed from the beat-level pulse waveform and the breathing traces.
 
 ### The refusal
-When you talk, move, leave the frame, or the light flickers, Paceprint pauses the measuring timer, says why in plain words, marks that stretch as hatched "refused" on the live traces, drops every reading to **Not read**, and excludes it from the analysis. A pace that can't collect 45 s of clean data is shown as **not read** on the result curve instead of being guessed. When the signal stops, the guide and traces freeze and say "Signal lost"; nothing is animated to look alive.
+When you move, leave the frame, the light flickers, or the pulse waveform drops out, Paceprint pauses the measuring timer, says why in plain words, marks that stretch as hatched "refused" on the live traces, drops every reading to **Not read**, and excludes it from the analysis. A pace that can't collect 45 s of clean data is shown as **not read** on the result curve instead of being guessed. When the signal stops, the guide and traces freeze and say "Signal lost"; nothing is animated to look alive.
+
+**Talking is warned and audited, not refused.** Speech moves the chest, so before Start you confirm "I'll stay silent and still". The SDK's talking flag turned out not to be reliable enough to discard data on: in our live checks it fired during silence (up to 100 % of the time in one setup, 21 % in a silent paced run in our cleanest setup), and two detectors and a burst-tolerance rule we built to fix it all failed their tests (`docs/decisions.md`). So the flag shows a live **Talking?** warning, and the result lists each pace's flagged share, marking paces at 40 % or more as caveated. It never removes data or changes the ranking.
 
 ### Architecture
 ```
@@ -119,7 +121,7 @@ The full notice is `docs/consent-and-data-handling.md`. The app shows **this sam
 - 18+. Wellness only.
 
 ## Limitations
-- Camera readings can be less reliable with movement, talking, poor or flickering light, dark or striped clothing, and glasses glare, and may perform differently across skin tones. Paceprint checks for these and refuses bad data, but it can still be wrong.
+- Camera readings can be less reliable with movement, talking, poor or flickering light, dark or striped clothing, and glasses glare, and may perform differently across skin tones. Paceprint refuses data it can measure as bad (motion, framing, light, weak or missing pulse). It cannot reliably detect talking, so it asks you to stay silent, warns you, and marks caveated paces. It can still be wrong.
 - The method is validated on synthetic and simulated signals (`docs/analysis.md`); real-person testing is limited.
 - Results are relative to you on that day. No population norms. Not a clinical assessment.
 - SDK use needs network access and API credits (no offline mode).
@@ -138,7 +140,7 @@ The full notice is `docs/consent-and-data-handling.md`. The app shows **this sam
 - **Resonance-frequency breathing** is an established technique in heart-rate-variability biofeedback research: Lehrer, Vaschillo & Vaschillo (2000), [*Resonant frequency biofeedback training to increase cardiac variability: rationale and manual for training*](https://link.springer.com/article/10.1023/A:1009554825745), Applied Psychophysiology and Biofeedback 25(3), 177–191. Paceprint is a camera-based wellness approximation of the idea, not a clinical assessment.
 - **Presage's own app**: [*Coherence by Presage Tech*](https://apps.apple.com/us/app/id6758461062) (iOS) is interactive breathwork with pulse and breathing tracking, squarely in Presage's wheelhouse and the closest relative of Paceprint. Its App Store description does not mention a pace sweep, and we could not verify whether it has one.
 - **Personal-pace apps**: several iOS apps find a personal breathing pace from a fingertip on the phone camera or a chest strap, e.g. Outliyr's [*Coherence*](https://outliyr.com/coherence) (4.5 to 6.5 breaths/min), [*BreathTuner HRV*](https://apps.apple.com/app/id1562688066), [*HRV4Biofeedback*](https://apps.apple.com/us/app/id1504638613). We did not invent pace finding.
-- **What Paceprint adds** is a combination, not a first: **webcam-only** (face and chest, nothing to touch), **validity-gated** (refuses talking, motion, poor framing, flicker), **honest about uncertainty** (clear / weak / no clear peak; "not read" paces), **measured vs felt**, **consent-first**, **local**, and **no AI service**.
+- **What Paceprint adds** is a combination, not a first: **webcam-only** (face and chest, nothing to touch), **validity-gated** (refuses motion, poor framing, flicker and pulse gaps; warns on and audits talking), **honest about uncertainty** (clear / weak / no clear peak; "not read" paces), **measured vs felt**, **consent-first**, **local**, and **no AI service**.
 - Patterns from other #presagechallenge entries that shaped our design (ideas only; no code or visuals copied): per-metric "not read" instead of a guess (Roll Call, CalmDesk AI), freezing instead of faking a signal (Aura), a judge-runnable SDK verifier and plain-language validation states (StagePulse), an honest warm-up wait (Stillpoint), one module owning the SDK with a simulated source (Breathless Reef), body numbers beside the person's own answers (Ad Pulse Lab), a visible follow score (Slow-Breath Coach), settle time as a metric (HalfBeat), a private end-of-session summary (Viva Mode), and disclosing measured network traffic (Exhale).
 
 ## License

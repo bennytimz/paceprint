@@ -14,7 +14,7 @@ It's for someone like me: a final-year pharmacy student in exam week who has tri
 
 You breathe along with a calm guide at five slow paces (7.0 to 5.0 breaths a minute). Paceprint reads your breathing and your pulse waveform through the SmartSpectra SDK, measures at which pace your heart rhythm and breathing move together most (a dose-response curve: pace is the dose, coupling the response), asks how easy each pace felt, and shows both: **measured vs felt**. Then it guides a five-minute session at your pace.
 
-The rule that shaped everything: **never show a number the data can't support.** Talk, move, step out of frame, or sit under a flickering light, and Paceprint pauses, tells you why, and throws that stretch away.
+The rule that shaped everything: **never show a number the data can't support.** Move, step out of frame, sit under a flickering light, or lose the pulse waveform, and Paceprint pauses, tells you why, and throws that stretch away. Talking is the one thing it couldn't measure well enough to throw away: the SDK's talking flag fired during silence in our tests, and every fix we tried failed its test. So it warns you live, asks you up front to stay silent, and the result shows how much of each pace was flagged.
 
 It's a wellness tool for self-awareness, not a medical device.
 
@@ -41,10 +41,10 @@ https://github.com/Bennytimz/paceprint (MIT)
 |---|---|
 | `cardio.arterialPressureTrace` (beat-level pulse waveform; relative, never blood pressure) | Detects each heartbeat, builds beat-to-beat heart rate, measures the heart-rate swing and phase locking at each pace. The core measurement. |
 | `breathing.lowerTrace` / `upperTrace` (belly / chest) | Follow score (are you breathing with the guide?), time to lock, breathing phase for coupling, live trace on screen |
-| `face.talking` | Refuses data while you talk (speech moves the chest); the timer waits |
+| `face.talking` | Shown live as a **Talking?** warning (never refuses data: in our tests it also fired during silence). Each pace's flagged share is an audit line on the result; paces at 40 % or more are marked caveated |
 | `face.landmarks` | Face motion as a fraction of face width; refuses data while you move |
 | `validationStatus` (all 16 codes) | Each mapped to a plain instruction ("Hold still", "Add more even light", "Sit back so your chest is in view") |
-| Confidence / `stable` flags | Pulse 40, breathing 45, HRV 50 before a number is shown as Trusted; talking, motion and flicker are checked independently |
+| Confidence / `stable` flags | Pulse 40, breathing 45, HRV 50 before a number is shown as Trusted; motion and flicker are checked independently |
 | `cardio.pulseRate`, `breathing.rate`, `cardio.hrv` | Context only, with Trusted / Not read states and a warm-up strip; **not** used for coupling |
 | `eda.trace` | Warm-up strip only; not interpreted |
 | `processingStatus`, `error` | Friendly stop screens; automatic breathing-only fallback if the key isn't provisioned for cardio |
@@ -78,14 +78,13 @@ Refusing a moment (`src/core/validity.ts`, trimmed):
 if (t - this.lastPacketT > VALIDITY.lostAfter) {
   add('lost', 'Signal lost', 'No reading from the camera right now. Visuals are frozen until it returns.');
 } else {
-  if (t - this.lastTalkT < VALIDITY.talkingHold) add('talking', 'Talking', 'Stop talking for a moment. Speech moves the chest and hides breathing.');
   if (this.motion.some((m) => m.v > VALIDITY.motionMax)) add('motion', 'Moving', 'Hold still. Rest your arms and lean back.');
   if (this.flicker > VALIDITY.flickerMax) add('flicker', 'Flickering light', 'More even light: screens and some bulbs flicker.');
   // ...plus every non-OK SDK validation code and low pulse confidence
 }
 ```
 
-**Testing.** `npm test` runs 56 tests: a full simulated sweep that must find the right pace, refusal windows that must be excluded, nothing scored before the pulse waveform arrives (it took 36 s in the live check) and no gap in it ever filled in, the breathing-only fallback, a "no clear result" day, timestamp handling, the local store's delete-everything, and a replay of the bundled Judge Mode session. `npm run verify-sdk` checks every signal live on a real key:
+**Testing.** `npm test` runs 76 tests: a full simulated sweep that must find the right pace, refusal windows that must be excluded, a talking flag that fires on its own and must refuse nothing and change no ranking (only the audit line), nothing scored before the pulse waveform arrives (it took 36 s in the live check) and no gap in it ever filled in, the breathing-only fallback, a "no clear result" day, timestamp handling, the local store's delete-everything, and a replay of the bundled Judge Mode session. `npm run verify-sdk` checks every signal live on a real key:
 
 ```
 === Signals ===

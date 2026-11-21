@@ -35,7 +35,7 @@ We measured the app's network traffic at operating-system level (see `scripts/ne
 None. Paceprint never sends data to an AI or language-model service. The SDK's optional "insights" feature, which sends measured values to a language model, is not used.
 
 ### Limitations
-Camera-based readings can be less reliable with movement, talking, poor or flickering light, dark or tightly striped clothing, glasses glare, and may perform differently across skin tones. Paceprint checks for these and refuses to use data it cannot trust, but it can still be wrong. Results are relative to you on that day, never compared with population norms.
+Camera-based readings can be less reliable with movement, talking, poor or flickering light, dark or tightly striped clothing, glasses glare, and may perform differently across skin tones. Paceprint checks for these and refuses to use data it cannot trust, but it can still be wrong. The camera's talking check is not reliable enough to discard data on, so Paceprint asks you to stay silent, warns you when it thinks you may be talking, and shows on your result how much of each pace was flagged. Results are relative to you on that day, never compared with population norms.
 
 ### Not a medical device
 Paceprint is a wellness tool for self-awareness. It is not a medical device, is not cleared by any regulator, and must not be used for diagnosis, treatment, or any medical decision. The SDK's readings are offered by Presage for general wellness only.

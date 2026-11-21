@@ -47,10 +47,20 @@ describe('ValidityMonitor', () => {
     v.ingest({ type: 'packet', p: pkt(14 + VALIDITY.settle, wave(14 + VALIDITY.settle)) });
     expect(v.check(14 + VALIDITY.settle + 0.01).ok).toBe(true);
   });
-  it('refuses on talking, motion, flicker and any non-OK validation code', () => {
+  it('warns on the talking flag but never refuses on it, and starts no settle', () => {
     const v = new ValidityMonitor();
-    v.ingest({ type: 'packet', p: pkt(1, { talking: true }) });
-    expect(v.check(1).reasons.map((r) => r.id)).toContain('talking');
+    v.ingest({ type: 'packet', p: pkt(0, { pressure: [{ t: 0, v: 1 }] }) });
+    v.ingest({ type: 'packet', p: pkt(1, { talking: true, pressure: [{ t: 1, v: 1 }] }) });
+    const c = v.check(1);
+    expect(c.reasons.map((r) => r.id)).not.toContain('talking');
+    expect(c.warnings.map((r) => r.id)).toContain('talking');
+    expect(c.ok).toBe(true);
+    v.ingest({ type: 'packet', p: pkt(4, { talking: false, pressure: [{ t: 4, v: 1 }] }) });
+    const after = v.check(4);
+    expect(after.ok).toBe(true);
+    expect(after.warnings).toEqual([]);
+  });
+  it('refuses on motion, flicker and any non-OK validation code', () => {
     const m = new ValidityMonitor();
     m.ingest({ type: 'packet', p: pkt(1, { motion: 0.05 }) });
     expect(m.check(1).reasons.map((r) => r.id)).toContain('motion');

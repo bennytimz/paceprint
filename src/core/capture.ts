@@ -18,7 +18,7 @@ export interface CaptureSource {
 // Simulated person
 // ---------------------------------------------------------------------------
 
-export interface SimEpisode { from: number; to: number; kind: 'talking' | 'motion' | 'lost' | 'dark' }
+export interface SimEpisode { from: number; to: number; kind: 'talking' | 'motion' | 'lost' | 'dark' | 'flagonly' }  // flagonly: the SDK talking flag fires with no other effect (as seen in real silent runs)
 
 export interface SimOptions {
   seed?: number;
@@ -186,7 +186,7 @@ export class SimulatedStream {
       upper: this.buf.upper, lower: this.buf.lower, pressure: this.buf.pressure,
       pressureConf: t > 12 ? conf : 10,
       eda: [],
-      talking: ep === 'talking',
+      talking: ep === 'talking' || ep === 'flagonly',
       blinking: p.rand() < 0.05,
       face: true,
       motion: ep === 'motion' ? 0.04 + 0.03 * p.rand() : 0.002 * p.rand(),

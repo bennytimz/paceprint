@@ -139,6 +139,12 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Per-packet talking stays in validity, unchanged. A looser rule would need a new pre-registered test on a fresh reading run.
 - Credits 85 → 84. Recording: recordings/talkcontrast-2026-11-21T22-24-30-280Z.* (gitignored). No coupling looked at.
 
+## Rule 8 fallback: talking warned and audited, not refused (Sat Nov 21, 23:33)
+- Owner's decision after burst tolerance failed. The talking flag no longer refuses data; every other refusal unchanged, including pulse-gap refusal; no threshold changed.
+- Live "Talking?" warning; setup checkbox "I'll stay silent and still" gates Start; result table has a "Talking flag" column with each pace's flagged share, caveated at ≥ 40 % (display only, new), plus a note. Saved sessions keep the share.
+- README, consent doc, post, demo script, analysis doc and CLAUDE.md Rule 8 updated. 76 tests pass.
+- The Judge Mode GIF still shows the old "Paused: Talking" card (NEEDS_OWNER 1i).
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
