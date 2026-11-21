@@ -3,6 +3,14 @@
 Times are Lagos (WAT). Claude keeps building against replay/simulated data meanwhile and never turns on
 the camera or spends trial credits.
 
+## Still missing from the DEV post (`docs/devpost.md`; search for `⟦PLACEHOLDER`)
+Everything else in the post is written. These four need your live run or your upload:
+1. **Video link**: after task 5 (upload `video-out\paceprint-demo.mp4`, paste the link).
+2. **verify-sdk output**: Claude pastes it after task 1 or 3 (from your terminal output).
+3. **Real GIF**: Claude regenerates it from your recorded session after "live test done".
+4. **Cover image**: 1000×420 px works on DEV. Claude can make one from a Judge Mode screenshot; you upload it to DEV
+   and paste the URL into `cover_image`.
+
 ## 1. Daylight spike (3 min of camera) — NEEDED BY: Sat Nov 21, 10:00
 Confirms the SDK delivers breathing and **cardio** (pulse waveform) on your key. Daylight or a bright,
 steady lamp in front of you; laptop on a table; sit ~1 m back so your chest is in view; don't talk.
@@ -25,8 +33,11 @@ Options, quickest first:
   > minutes/credits does a challenge key have, and how are they counted (per session start, per minute of
   > processing)? My full app run is about 16 minutes of camera time. Also, is my key enabled for cardio
   > metrics (pulse rate, arterial pressure trace, HRV)? Thank you!
-- (Presage also has a hosted MCP server with a `usage.get_plan` tool that reports remaining credits; it needs
-  you to connect your account, so the portal or Discord is simpler.)
+- **Or let Claude read it (about 1 minute):** Claude has registered Presage's hosted MCP server in this project
+  (`smartspectra`, https://mcp.presagetech.com/mcp). It needs your sign-in once, in your browser:
+  type `/mcp` in Claude Code → select **smartspectra** → **Authenticate** → log in with your SmartSpectra
+  (portal) account and approve. Then say **"credits?"** and Claude will read your plan and remaining credits
+  into STATUS.md. Claude never sees your password. Signing in does not use any credits.
 
 Already used: about 2 minutes (three short tests on Sat 00:25–01:00, two of them for the network audit).
 Budget: spike 3 min + one full live run ~16 min (+ up to ~4 min if many moments get refused).
@@ -88,28 +99,36 @@ If something breaks, restart with logs and paste the terminal output to Claude:
 $env:PACEPRINT_DEVTOOLS = "1"; npm start
 ```
 
-## 4. Before making the repo public — ON SUNDAY, ONLY WHEN YOU TELL CLAUDE TO RUN IT
-Nothing has been pushed yet (local `main` is ahead of GitHub), so the old full brief exists only in local
-history. The full brief is now `BRIEF.private.md` (gitignored); `CLAUDE.md` is a short public-safe version.
-Checklist (Claude will run it with you):
-1. Backup everything:
-   `git bundle create ..\paceprint-backup-YYYYMMDD.bundle --all`
-2. Keep a copy of the public-safe file outside the repo: `copy CLAUDE.md ..\CLAUDE.public.md`
-3. Purge every version of CLAUDE.md from history:
-   `git filter-repo --path CLAUDE.md --invert-paths --force`
-   (filter-repo removes the `origin` remote; re-add it: `git remote add origin https://github.com/Bennytimz/paceprint.git`)
-4. Re-add the public-safe CLAUDE.md in a fresh commit:
-   `copy ..\CLAUDE.public.md CLAUDE.md; git add CLAUDE.md; git commit -m "Add public project notes"`
-5. Check all history and docs for: the API key; local paths (`C:\Users\...`, your Windows username); personal details
-   (email, phone, real name where not intended, school/placement details); recordings that are not metric
-   streams (only `tests/fixtures/*.json` should exist, and they must be numbers only); `BRIEF.private.md`
-   must not appear anywhere.
-6. Force-push to your private repo: `git push --force origin main`, then check on GitHub.
-7. Then make the repo public.
+## 4. Making the repo public — SUNDAY, two steps left
+**Already done (Sat Nov 21, ~01:40):** backup bundle made (`..\paceprint-backup-20261121.bundle`, outside the
+repo; it still holds the OLD history, so keep it private and delete it after submission); every old version of
+CLAUDE.md purged from history; your local project path scrubbed from history; the public-safe CLAUDE.md
+re-added in one fresh commit; pushed to the **private** GitHub repo as a normal fast-forward on top of GitHub's
+own "Initial commit" (nothing on GitHub was overwritten). A fresh clone from GitHub was scanned: no API key,
+no old brief, no local paths, no email, no `BRIEF.private.md`, one CLAUDE.md version, no attribution lines.
+(`..\BRIEF.private.backup.md` is a spare copy of the brief, also outside the repo.)
+
+Left for Sunday, after the last commit (Claude runs step 1 with you):
+1. **Final secret scan** of everything committed since: the key, local paths, your username, email/phone,
+   recordings that aren't numbers-only metric streams (only `tests/fixtures/*.json` may exist), any mention of
+   `BRIEF.private.md` other than the one line in CLAUDE.md. Note: `docs/devpost.md` says you're a final-year
+   pharmacy student; that's intentional for the post, so keep or remove it as you prefer.
+2. **Flip visibility:** GitHub → paceprint → Settings → General → Danger Zone → Change visibility → Public.
+   (Or: `gh repo edit Bennytimz/paceprint --visibility public --accept-visibility-change-consequences`.)
 
 ## 5. Sunday: video, post, submit — details added before the freeze (Sun Nov 22, 08:00)
-Voice-over and subtitles: Claude generates them (edge-tts + ffmpeg) from `docs/demo-script.md` once your OBS
-footage exists. You: upload the video, publish the DEV post, submit by 18:00.
+The pipeline is ready and rehearsed: `python scripts/make-video.py --video raw-cut.mp4` turns your cut footage
+into `video-out\paceprint-demo.mp4` (1080p, Jenny voice, burned-in subtitles). Exact steps and variants are in
+`docs/demo-script.md` → "Production steps". Nothing to install; Python, edge-tts and ffmpeg are already set up.
+
+**Keep the voice-over in line with the screen.** Before uploading, watch the whole video once with sound on.
+Every narrated line must describe what is visible at that moment: "watch what happens when I talk" must land
+on the yellow "Paused: Talking" card, the result lines on the result screen, the guided line on the guided
+session. If the live run differs from the script (for example the refusal says "Moving" first, or the
+result says "weak peak"), change the narration words in the table to match what actually happened. Never
+narrate something the footage doesn't show. Then re-run the command (about 30 s).
+
+You: upload the video, publish the DEV post, submit by 18:00.
 
 ## Feedback
 (write here)
