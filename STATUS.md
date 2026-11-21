@@ -113,11 +113,19 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Test fixed before data in docs/decisions.md and `scripts/eval-mouth-detector.ts`. Dry runs: a clean synthetic detector → ADOPT; a synthetic detector whose lip movement grows with breath depth → REJECT. A correlation pass rule was dropped in the dry run (chance |r| 0.51 on overlapping windows) in favour of refusal headroom; reason logged.
 - 7 new tests (tests/mouth.test.ts); the slow-mouth-breathing test fails if the band is widened to include breathing. 64 tests pass; typecheck and build OK.
 
+## Mouth contrast (Sat Nov 21, ~22:16, owner ran it, 120 s): detector REJECTED
+- Fixed test, unchanged: threshold 0.0178; reading caught 100 %; false alarms 17 % in silent-2 and 8 % at 5/min nose (limit 5 %); 0 % while mouth-breathing; headroom failed in both paced parts (p95 0.0183 and 0.0156 vs 0.0089). REJECT.
+- The lip ratio itself tracks speech (median 0.077 reading vs 0.020 silent), but face-point jitter keeps the silent speech score at ~0.012–0.014 against ~0.028 while reading. Too close for a refusal rule.
+- SDK talking flag: 98–100 % in every part, including silence. Rule 8 still has no working talking detector.
+- **No pulse data at all this run** (pulse, pressure, HRV, EDA all missing) and "Two faces" 629 times. Possibly a second face in view; asked the owner (NEEDS_OWNER 1g).
+- Consent sentence now overstates use ("to tell when you are talking"); revision drafted, not applied (NEEDS_OWNER 1f, owner's choice).
+- Credits 90 → 86. Recording: recordings/mouthcontrast-2026-11-21T21-16-06-753Z.* (gitignored). No coupling looked at; no threshold changed.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
 - Consent sentence approved and applied (Sat 22:12, owner added "or any images"); in-app notice reads the same file; app recordings keep the lip ratio; README and post signal tables mention it. If the detector is rejected, the sentence must be revised.
-- Waiting on owner: `npm run mouth-contrast` (NEEDS_OWNER 1e, ~4 credits), then the fixed test decides ADOPT/REJECT. Then the spike rerun and the one live run (#3). Credits: 90. Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
+- Mouth contrast done: detector REJECTED. Waiting on owner: consent sentence revision (NEEDS_OWNER 1f), the "Two faces" question (1g), and how Rule 8 should detect talking now. Credits: 86. Then the spike rerun and the one live run (#3). Credits: 90. Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.
 
 ## Blockers / risks
