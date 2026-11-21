@@ -100,7 +100,7 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Credits 91 → 90. Recording: recordings/talkcontrast-2026-11-21T20-53-51-443Z.* (gitignored).
 - **Decision needed from the owner:** how Rule 8 detects talking when the SDK flag is uninformative.
 
-## Breathing-trace talking detector (Sat Nov 21, ~22:15): rejected
+## Breathing-trace talking detector (Sat Nov 21, 21:57): rejected
 - Tested offline on the talk contrast and the talk check (silent control), chest trace 1–4 Hz in 4 s windows (`scripts/eval-talk-detector.ts`).
 - Share of 1–4 Hz power: 92 % of reading windows caught, 7 % false alarms on the silent talk check even with a threshold tuned on the same data; correlates +0.34 with follow score on silent paced windows. Absolute level: 25 % false alarms, r = 0.75 with breath size. Neither separates cleanly on both recordings, and both depend on how the person breathes, so a refusal built on them would bias the pace comparison.
 - Not adopted; reasons in docs/decisions.md. No threshold changed, no coupling looked at.

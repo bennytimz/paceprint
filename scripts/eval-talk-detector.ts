@@ -1,4 +1,4 @@
-// Offline check of a breathing-trace talking detector (docs/decisions.md, 2026-11-21 22:15).
+// Offline check of a breathing-trace talking detector (docs/decisions.md, 2026-11-21 21:57).
 // Reads the owner's local recordings (gitignored): talk-contrast (20 s silent, 20 s reading aloud, 20 s
 // silent) and talk-check (silent, 5/min, nose). For each 4 s window of the chest trace it measures energy
 // at 1-4 Hz, as a share of the window's power and as an absolute level, then reports (1) how well the best
