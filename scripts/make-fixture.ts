@@ -15,7 +15,7 @@ const { protocol, recording } = runSimulatedSession({
   guided: 60,
   note: 'SIMULATED person (not a real recording): best-coupled pace modelled at 5.5/min; talking at ~112 s and motion at ~372 s to show the refusal.',
 });
-recording.events = recording.events.map(compactEvent);
+recording.events = recording.events.map((e) => compactEvent(e));
 const file = path.join(out, 'judge-simulated.json');
 fs.writeFileSync(file, JSON.stringify(recording));
 const r = protocol.result!;

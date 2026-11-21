@@ -1,6 +1,7 @@
 // Turns a decoded SmartSpectra `Metrics` protobuf object into a Packet.
 // Stateful: keeps the session time origin and the previous face position.
 import type { Packet, Sample, ConfSample } from './types';
+import { lipRatio } from './mouth';
 
 type AnyObj = Record<string, any>;
 
@@ -108,6 +109,13 @@ export class Normalizer {
       // ~85 % of packets (live spike, Nov 21): a packet without them says nothing about the face.
       p.face = false;
     }
+    // one lip-opening ratio per landmark frame; the points themselves are never kept
+    const mouth: Sample[] = [];
+    for (const f of face.landmarks ?? []) {
+      const t = this.sec(f?.timestamp), v = lipRatio(f?.value);
+      if (Number.isFinite(t) && Number.isFinite(v)) mouth.push({ t, v });
+    }
+    if (mouth.length) p.mouth = mouth;
     return p;
   }
 

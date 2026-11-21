@@ -43,6 +43,26 @@ on screen aloud, over and over, then 20 s silent again.
 npm run talk-contrast
 ```
 
+## 1d. Approve (or change) one consent sentence before the lip detector can be used in the app
+The mouth-opening talking detector turns the face points into one number, how far apart the lips are. The
+consent text doesn't mention this yet, so app recordings drop it until you approve. Proposed change, in
+`docs/consent-and-data-handling.md`, the paragraph that starts "While the camera is on". Add this sentence
+directly after "Paceprint uses these to guide you and to compute its result.":
+
+> From the face position points Paceprint computes one number, how far apart your lips are, to tell when you are talking; if you save session data, only that number is kept, never the points.
+
+Nothing is committed yet. Say "consent approved" (or give your wording) and Claude will apply it to the doc,
+check README and the post still match, and let app recordings keep the ratio.
+
+## 1e. Mouth contrast (120 s of camera, about 4 credits; 90 left)
+Tests the lip detector. Same setup as before. 20 s silent with mouth closed, 20 s reading the sentence aloud,
+20 s silent, then 60 s silent at 5 breaths/min: the first 30 s through your **nose**, the last 30 s through
+your **mouth** (the prompt says which). Saves only the lip-opening ratio, no face points.
+```powershell
+npm run mouth-contrast
+```
+Then Claude runs the fixed test (`scripts/eval-mouth-detector.ts`), which prints ADOPT or REJECT.
+
 ## 2. Ask Presage how many trial minutes you have — NEEDED BY: Sat Nov 21, 10:00
 The SDK has no way to read your remaining credits (it only raises `kCreditExhausted` when they run out).
 Options, quickest first:

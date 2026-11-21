@@ -6,6 +6,9 @@
 //                         numbers, by design) and saves the recording like the spike.
 // npm run talk-contrast -> 60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent. Shows whether
 //                         the talking flag tells silence from speech at all on this setup.
+// npm run mouth-contrast -> 120 s: the same three 20 s parts, then 60 s silent at 5/min (30 s through the
+//                         nose, 30 s through the mouth). Saves one lip-opening ratio per frame (no face
+//                         points) for the mouth-opening detector test in docs/decisions.md. No coupling.
 //
 // Needs SMARTSPECTRA_API_KEY in .env and a webcam. Never prints the key.
 import * as fs from 'node:fs';
@@ -14,6 +17,7 @@ import { loadEnvKey } from '../src/main/env';
 import { Normalizer } from '../src/core/normalize';
 import type { StreamEvent, Recording } from '../src/core/types';
 import { validationMessage } from '../src/core/validation-codes';
+import { speechScore } from '../src/core/mouth';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ss = require('@smartspectra/node-sdk');
@@ -25,9 +29,11 @@ const SENTENCE = 'The morning light came through the window and warmed the old w
 /** contrast parts: [stage, from s, to s] */
 const CONTRAST_PARTS = [['silent-1', 0, 20], ['aloud', 20, 40], ['silent-2', 40, 60]] as const;
 const SPIKE = process.argv.includes('--spike');
-const RECORD = SPIKE || TALK || CONTRAST;
+const MOUTHC = process.argv.includes('--mouth-contrast');
+const MOUTH_PARTS = [['silent-1', 0, 20], ['aloud', 20, 40], ['silent-2', 40, 60], ['pace-5.0-nose', 60, 90], ['pace-5.0-mouth', 90, 120]] as const;
+const RECORD = SPIKE || TALK || CONTRAST || MOUTHC;
 const TALK_WARM = 15;   // s of normal breathing first: the pulse starts 17-36 s in
-const SECONDS = SPIKE ? 150 : TALK ? 75 : CONTRAST ? 60 : Number(argFlag('--seconds') ?? 60);
+const SECONDS = SPIKE ? 150 : TALK ? 75 : CONTRAST ? 60 : MOUTHC ? 120 : Number(argFlag('--seconds') ?? 60);
 const ROOT = path.resolve(__dirname, '..', '..');
 
 function argFlag(name: string): string | undefined {
@@ -68,9 +74,11 @@ let lastPacketT: number | null = null, lastPacketWall = 0;
 const tStream = () => (lastPacketT === null ? 0 : lastPacketT + (Date.now() - lastPacketWall) / 1000);
 
 function jsonSafe(m: any): any {
-  // shrink landmarks for the raw dump; convert Longs
+  // raw dump: face points are reduced to their count (no coordinates are saved), expression scores are
+  // dropped (never used); protobuf Longs become numbers
   return JSON.parse(JSON.stringify(m, (k, v) => {
-    if (k === 'value' && Array.isArray(v) && v.length > 6 && typeof v[0] === 'object') return { count: v.length, first: v.slice(0, 3) };
+    if (k === 'expression') return undefined;
+    if (k === 'value' && Array.isArray(v) && v.length > 6 && typeof v[0] === 'object') return { count: v.length };
     if (v && typeof v === 'object' && 'low' in v && 'high' in v && 'unsigned' in v) return (v.high >>> 0) * 4294967296 + (v.low >>> 0);
     return v;
   }));
@@ -126,6 +134,9 @@ async function run(metrics: number[], label: string): Promise<boolean> {
   startWall ||= Date.now();
   console.log(`Measuring for ${SECONDS} s (${label}). Sit still, face and chest in view, don't talk.`);
   if (TALK) console.log('Breathe through your NOSE the whole time, mouth gently closed. Follow the prompt after the first 15 s.');
+  if (MOUTHC) console.log(`Silent 20 s, read the sentence aloud 20 s, silent 20 s, then 60 s silent at 5 breaths/min:
+  first half through your NOSE, second half through your MOUTH (the prompt says which). The sentence:
+  "${SENTENCE}"`);
   if (CONTRAST) console.log(`Silent for 20 s, then read this aloud, over and over, for 20 s, then silent again:
   "${SENTENCE}"`);
   await guide(() => fatal);
@@ -154,6 +165,14 @@ async function guide(stop: () => boolean) {
       const [stage, , to] = CONTRAST_PARTS.find(([, , b]) => t < b) ?? CONTRAST_PARTS[2];
       prompt = stage === 'aloud' ? `READ ALOUD, repeat the sentence (${Math.ceil(to - t)} s)` : `silent, mouth closed (${Math.ceil(to - t)} s)`;
       events.push({ type: 'pacer', t: tStream(), bpm: 0, stage });
+    } else if (MOUTHC) {
+      const [stage, , to] = MOUTH_PARTS.find(([, , b]) => t < b) ?? MOUTH_PARTS[4];
+      const left = Math.ceil(to - t);
+      prompt = stage === 'aloud' ? `READ ALOUD, repeat the sentence (${left} s)`
+        : stage === 'pace-5.0-nose' ? `silent, NOSE, ${pace(t - 60, 5.0)}`
+        : stage === 'pace-5.0-mouth' ? `silent, MOUTH, ${pace(t - 60, 5.0)}`
+        : `silent, mouth closed (${left} s)`;
+      events.push({ type: 'pacer', t: tStream(), bpm: stage.startsWith('pace') ? 5.0 : 0, stage });
     } else {
       prompt = `${Math.ceil((end - Date.now()) / 1000)} s left`;
     }
@@ -163,15 +182,21 @@ async function guide(stop: () => boolean) {
   process.stdout.write('\n');
 }
 
-/** Talking-flag summary per phase: share of flagged packets and burst lengths. No coupling numbers. */
-function printTalking() {
-  const pk = events.flatMap((e) => (e.type === 'packet' && e.p.talking !== undefined ? [{ t: e.p.t, on: !!e.p.talking }] : []));
-  // parts come from the recorded stage markers (stream clock), so they line up with the packets
-  const LABELS: Record<string, string> = { baseline: 'normal breathing', 'pace-5.0': '5/min, nose', 'silent-1': 'silent', aloud: 'READING ALOUD', 'silent-2': 'silent again' };
+const LABELS: Record<string, string> = { baseline: 'normal breathing', 'pace-5.0': '5/min, nose', 'silent-1': 'silent', aloud: 'READING ALOUD', 'silent-2': 'silent again', 'pace-5.0-nose': '5/min, nose', 'pace-5.0-mouth': '5/min, mouth' };
+
+/** Parts from the recorded stage markers (stream clock), so they line up with the packets. */
+function stageParts(): [string, number, number][] {
   const marks = events.filter((e): e is Extract<StreamEvent, { type: 'pacer' }> => e.type === 'pacer');
   const parts: [string, number, number][] = [];
   for (const m of marks) if (!parts.length || parts.at(-1)![0] !== m.stage) parts.push([m.stage, m.t, Infinity]);
   parts.forEach((p, i) => { if (i === 0) p[1] = -Infinity; if (i + 1 < parts.length) p[2] = parts[i + 1][1]; });
+  return parts;
+}
+
+/** Talking-flag summary per phase: share of flagged packets and burst lengths. No coupling numbers. */
+function printTalking() {
+  const pk = events.flatMap((e) => (e.type === 'packet' && e.p.talking !== undefined ? [{ t: e.p.t, on: !!e.p.talking }] : []));
+  const parts = stageParts();
   console.log('\n=== Talking flag (SDK) ===');
   for (const [stage, a, b] of parts) {
     const label = LABELS[stage] ?? stage;
@@ -199,6 +224,27 @@ function printTalking() {
   console.log(`per 5 s: ${line.trim()}`);
   if (TALK) console.log('(Spike 2, mouth not controlled: about 60% during normal breathing, about 75% at 5/min.)');
   if (CONTRAST) console.log('(Talk check, silent and nose-breathing: 100% and 93%. A useful flag would be far higher while reading aloud than while silent.)');
+}
+
+/** Lip-opening summary per part: how much of the time the ratio was available, its typical value, and the
+ *  speech score (2-7 Hz movement) over 2 s windows, 2 s trimmed at each part change. No coupling numbers. */
+function printMouth() {
+  const m = events.flatMap((e) => (e.type === 'packet' ? e.p.mouth ?? [] : [])).sort((a, b) => a.t - b.t);
+  console.log('');
+  console.log('=== Lip opening (our own, from face points; only the ratio is kept) ===');
+  if (!m.length) { console.log('no lip-opening data: face points did not arrive'); return; }
+  const q = (a: number[], p: number) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(p * s.length))] : NaN; };
+  for (const [stage, a0, b0] of stageParts()) {
+    const a = Math.max(a0, m[0].t), b = Math.min(b0, m[m.length - 1].t);
+    const inPart = m.filter((s) => s.t >= a && s.t < b);
+    let covered = 0, n = 0;
+    for (let t = a; t < b; t += 0.1, n++) if (inPart.some((s) => Math.abs(s.t - t) <= 0.25)) covered++;
+    const scores: number[] = [];
+    let unscored = 0;
+    for (let t = a + 2; t + 2 <= b - 2; t += 0.5) { const v = speechScore(m, t, t + 2); if (Number.isFinite(v)) scores.push(v); else unscored++; }
+    const label = (LABELS[stage] ?? stage).padEnd(17);
+    console.log(`${label} ratio available ${n ? ((100 * covered) / n).toFixed(0) : 0}% | median ratio ${q(inPart.map((s) => s.v), 0.5).toFixed(3)} | speech score p10 ${q(scores, 0.1).toFixed(4)} med ${q(scores, 0.5).toFixed(4)} p90 ${q(scores, 0.9).toFixed(4)} (${scores.length} windows, ${unscored} unscored)`);
+  }
 }
 
 function pace(dt: number, bpm: number): string {
@@ -240,13 +286,14 @@ function pace(dt: number, bpm: number): string {
   }
   for (const e of errors) console.log(e);
 
-  if (TALK || CONTRAST) printTalking();
+  if (TALK || CONTRAST || MOUTHC) printTalking();
+  if (MOUTHC) printMouth();
   if (RECORD) {
     const dir = path.join(ROOT, 'recordings');
     fs.mkdirSync(dir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const name = TALK ? 'talkcheck' : CONTRAST ? 'talkcontrast' : 'spike';
-    const note = TALK ? 'talk-check: 15 s nose normal breathing, 60 s @5.0 nose' : CONTRAST ? 'talk-contrast: 20 s silent, 20 s reading aloud, 20 s silent' : 'spike: 60 s baseline, 45 s @7.0, 45 s @5.0';
+    const name = TALK ? 'talkcheck' : CONTRAST ? 'talkcontrast' : MOUTHC ? 'mouthcontrast' : 'spike';
+    const note = MOUTHC ? 'mouth-contrast: 20 s silent, 20 s reading aloud, 20 s silent, 30 s @5.0 nose, 30 s @5.0 mouth (lip-opening ratio only)' : TALK ? 'talk-check: 15 s nose normal breathing, 60 s @5.0 nose' : CONTRAST ? 'talk-contrast: 20 s silent, 20 s reading aloud, 20 s silent' : 'spike: 60 s baseline, 45 s @7.0, 45 s @5.0';
     const rec: Recording = { format: 'paceprint-stream', version: 1, createdAt: new Date().toISOString(), source: 'camera', note, events };
     fs.writeFileSync(path.join(dir, `${name}-${stamp}.stream.json`), JSON.stringify(rec));
     fs.writeFileSync(path.join(dir, `${name}-${stamp}.raw.json`), JSON.stringify({ tally, validationCounts, errors, raw }));

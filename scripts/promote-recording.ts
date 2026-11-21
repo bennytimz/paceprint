@@ -14,7 +14,7 @@ if (!src) { console.error('usage: npm run promote-recording -- <file.stream.json
 const rec = parseRecording(fs.readFileSync(src, 'utf8'));
 if (rec.source !== 'camera') { console.error('Not a camera recording.'); process.exit(1); }
 const merged = mergePackets(rec);
-merged.events = merged.events.map(compactEvent);
+merged.events = merged.events.map((e) => compactEvent(e));
 merged.note = 'Real session, recorded live with the owner\'s consent (metric streams only, no video).';
 const problems = auditRecording(merged);
 if (problems.length) { console.error('Refusing to promote:', problems.join('; ')); process.exit(1); }
