@@ -7,8 +7,8 @@ const rs = (a: Sample[]) => a.map((s) => ({ t: r3(s.t), v: r4(s.v) }));
 
 /**
  * Round numbers so recordings stay small; precision is far beyond what the analysis uses.
- * The lip-opening ratio is dropped unless `keepMouth` is set: the consent text does not yet say that
- * recordings contain it (pending owner approval, NEEDS_OWNER.md).
+ * The lip-opening ratio is kept only when `keepMouth` is set. The live app sets it: the consent text says
+ * saved session data contains that one number (approved Nov 21). Other callers drop it by default.
  */
 export function compactEvent(e: StreamEvent, keepMouth = false): StreamEvent {
   if (e.type !== 'packet') return { ...e, t: r3(e.t) } as StreamEvent;

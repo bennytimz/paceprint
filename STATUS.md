@@ -116,7 +116,8 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
-- Waiting on owner: consent sentence (NEEDS_OWNER 1d), `npm run mouth-contrast` (1e, ~4 credits), then the fixed test decides ADOPT/REJECT. Then the spike rerun and the one live run (#3). Credits: 90. Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
+- Consent sentence approved and applied (Sat 22:12, owner added "or any images"); in-app notice reads the same file; app recordings keep the lip ratio; README and post signal tables mention it. If the detector is rejected, the sentence must be revised.
+- Waiting on owner: `npm run mouth-contrast` (NEEDS_OWNER 1e, ~4 credits), then the fixed test decides ADOPT/REJECT. Then the spike rerun and the one live run (#3). Credits: 90. Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.
 
 ## Blockers / risks

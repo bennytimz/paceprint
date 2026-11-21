@@ -144,7 +144,7 @@ async function startSession() {
   }
 
   replay = null;
-  recorder = settings.saveStreams ? new Recorder('camera') : null;
+  recorder = settings.saveStreams ? new Recorder('camera', true) : null; // keeps the lip-opening ratio (consent text covers it)
   const cam = new CameraSource((stream) => attachStream(stream), (m) => console.warn('[camera]', m));
   source = cam;
   $('setup-msg').textContent = 'Starting the camera…';

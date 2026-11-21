@@ -43,7 +43,7 @@ export interface Packet {
   /** face present in this packet */
   face?: boolean;
   /** lip-opening ratio per landmark frame (lip gap / mouth width). The only number kept from the face
-   *  points. Dropped from app recordings until the consent text covers it (see recorder.ts). */
+   *  points; named in the consent text. */
   mouth?: Sample[];
   eda: Sample[];
 }

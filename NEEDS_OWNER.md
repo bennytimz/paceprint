@@ -43,16 +43,8 @@ on screen aloud, over and over, then 20 s silent again.
 npm run talk-contrast
 ```
 
-## 1d. Approve (or change) one consent sentence before the lip detector can be used in the app
-The mouth-opening talking detector turns the face points into one number, how far apart the lips are. The
-consent text doesn't mention this yet, so app recordings drop it until you approve. Proposed change, in
-`docs/consent-and-data-handling.md`, the paragraph that starts "While the camera is on". Add this sentence
-directly after "Paceprint uses these to guide you and to compute its result.":
-
-> From the face position points Paceprint computes one number, how far apart your lips are, to tell when you are talking; if you save session data, only that number is kept, never the points.
-
-Nothing is committed yet. Say "consent approved" (or give your wording) and Claude will apply it to the doc,
-check README and the post still match, and let app recordings keep the ratio.
+## 1d. Consent sentence: DONE (approved Sat Nov 21 22:12, with "or any images" added)
+Applied to `docs/consent-and-data-handling.md` (shown in the app as-is); app recordings now keep the lip ratio.
 
 ## 1e. Mouth contrast (120 s of camera, about 4 credits; 90 left)
 Tests the lip detector. Same setup as before. 20 s silent with mouth closed, 20 s reading the sentence aloud,
