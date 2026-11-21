@@ -8,8 +8,9 @@ Everything else in the post is written. These four need your live run or your up
 1. **Video link**: after task 5 (upload `video-out\paceprint-demo.mp4`, paste the link).
 2. **verify-sdk output**: Claude pastes it after task 1 or 3 (from your terminal output).
 3. **Real GIF**: Claude regenerates it from your recorded session after "live test done".
-4. **Cover image**: 1000×420 px works on DEV. Claude can make one from a Judge Mode screenshot; you upload it to DEV
-   and paste the URL into `cover_image`.
+4. **Cover image**: a draft is ready at `docs/media/cover-draft.png` (1000×420, the result screen, tagged "simulated
+   session"). Claude remakes it from your real session after the live run. You upload it in the DEV editor
+   (cover image button); DEV fills in `cover_image` itself.
 
 ## 1. Daylight spike (3 min of camera) — NEEDED BY: Sat Nov 21, 10:00
 Confirms the SDK delivers breathing and **cardio** (pulse waveform) on your key. Daylight or a bright,
