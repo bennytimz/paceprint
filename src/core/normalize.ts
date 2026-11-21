@@ -18,6 +18,8 @@ export function toNum(x: unknown): number {
 
 export class Normalizer {
   private t0Us: number | null = null;
+  /** offset (s) added to every time, so a restarted camera continues the same session clock */
+  constructor(private readonly offsetS = 0) { this.lastT = offsetS; }
   private prevCentroid: { x: number; y: number } | null = null;
 
   /** seconds since the first timestamp seen */
@@ -25,7 +27,7 @@ export class Normalizer {
     const us = toNum(tsUs);
     if (!Number.isFinite(us)) return NaN;
     if (this.t0Us === null) this.t0Us = us;
-    return (us - this.t0Us) / 1e6;
+    return (us - this.t0Us) / 1e6 + this.offsetS;
   }
 
   private samples(arr: AnyObj[] | undefined): Sample[] {
@@ -46,7 +48,7 @@ export class Normalizer {
 
   /** packetTsUs: the timestamp passed with the `metrics` event */
   private pktOffsetUs: number | null = null;
-  private lastT = 0;
+  private lastT: number;
 
   /**
    * Packet time comes from the measurement timestamps inside the packet (the same base as the traces).
@@ -64,7 +66,7 @@ export class Normalizer {
       t = this.sec(maxUs);
       if (Number.isFinite(pts)) this.pktOffsetUs = pts - maxUs;
     } else if (Number.isFinite(pts) && this.pktOffsetUs !== null && this.t0Us !== null) {
-      t = (pts - this.pktOffsetUs - this.t0Us) / 1e6;
+      t = (pts - this.pktOffsetUs - this.t0Us) / 1e6 + this.offsetS;
     } else t = this.lastT;
     if (!Number.isFinite(t) || t < this.lastT) t = this.lastT; // never run backwards
     this.lastT = t;

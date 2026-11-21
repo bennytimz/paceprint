@@ -160,3 +160,6 @@ vite.config.ts.timestamp-*
 recordings/*
 !recordings/.gitkeep
 dist-app/
+
+# Private working notes (never commit)
+BRIEF.private.md

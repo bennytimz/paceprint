@@ -14,11 +14,14 @@ declare global { interface Window { paceprint: any } }
 export class CameraSource implements CaptureSource {
   readonly kind = 'camera' as const;
   private sdk: any = null;
-  private norm = new Normalizer();
+  private norm: Normalizer;
   /** set when cardio metrics were refused for this key (Plan C fallback) */
   cardioRefused = false;
 
-  constructor(private onStream: (s: MediaStream) => void, private onLog: (msg: string) => void = () => {}) {}
+  /** timeOffsetS: continue an existing session clock (used when the camera restarts for the guided session) */
+  constructor(private onStream: (s: MediaStream) => void, private onLog: (msg: string) => void = () => {}, timeOffsetS = 0) {
+    this.norm = new Normalizer(timeOffsetS);
+  }
 
   async start(listener: Listener) {
     const key: string = await window.paceprint.prepareLive();

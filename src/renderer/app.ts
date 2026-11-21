@@ -185,6 +185,8 @@ async function stopAll(reason = 'Stopped by you.') {
   $('rate').hidden = true;
   await stopSource();
   replay = null;
+  pendingGuided = false;
+  await saveStreamNow();
   if (protocol?.result) { show('scr-result'); return; }
   message('Stopped', 'Camera is off.', `${reason} Nothing from this session was saved.`);
 }
@@ -232,6 +234,7 @@ function loop(now: number) {
   protocol.tick(t);
   trackInvalid(t);
   const ph = protocol.phase.name;
+  if (pendingGuided && ph === 'result' && protocol.verdict.ok) { pendingGuided = false; protocol.startGuided(); }
   if (ph !== shownPhase) enterPhaseUi(ph);
   if (ph === 'setup') renderSetup(t);
   else if (ph === 'baseline' || ph === 'settle' || ph === 'measure' || ph === 'guided') renderSession(t, now - lastHeavy > 33);
@@ -516,7 +519,8 @@ function showResult() {
     : b?.status === 'excluded' ? `Baseline not read: ${b.reason}` : '';
   const gp = r.bestPace !== null && r.certainty !== 'flat' ? r.bestPace : null;
   ($('btn-guided') as HTMLButtonElement).textContent = `Start 5-minute guided session${gp ? ` at ${gp}/min` : ''}`;
-  ($('btn-guided') as HTMLButtonElement).hidden = !running;
+  ($('btn-guided') as HTMLButtonElement).hidden = info.demo ? !running : false;
+  if (!info.demo && source) void pauseCameraForResult();
   if (info.demo && replay) { heldSpeed = replay.speed; replay.speed = 0; ($('btn-guided') as HTMLButtonElement).textContent = 'Play the recorded guided session'; }
   saveSummary().then(renderHistory);
 }
@@ -536,13 +540,13 @@ async function saveSummary() {
     id: sessionId, createdAt: new Date().toISOString(), mode: p.result!.mode, bestPace: p.result!.bestPace, certainty: p.result!.certainty,
     vsBaseline: p.result!.vsBaseline, baseline: strip(p.baselineResult), stages: p.stageResults.map(strip),
   });
-  if (recorder && settings.saveStreams) await api.saveStream(sessionId, JSON.stringify(recorder.toRecording('live session')));
+  await saveStreamNow();
 }
 
 let heldSpeed = 0;
 $('btn-guided').addEventListener('click', () => {
   if (info.demo && replay) { replay.speed = heldSpeed || currentSpeed(); return; }
-  protocol?.startGuided();
+  void startGuidedLive();
 });
 $('btn-again').addEventListener('click', () => (info.demo ? startSession() : running ? (protocol = null, startSession()) : startSession()));
 $('btn-end-guided').addEventListener('click', () => protocol?.finishGuided());
@@ -691,3 +695,39 @@ $('btn-card').addEventListener('click', () => {
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }, 'image/png');
 });
+
+// ------------------------------------------------------------------ camera time: off while reading the result
+let pendingGuided = false;
+
+/** Live: switch the camera off at the result so no trial credits are spent while reading it. */
+async function pauseCameraForResult() {
+  running = false;
+  $('btn-stop').hidden = true;
+  await stopSource();
+}
+
+/** Live: turn the camera back on, continuing the same session clock, then start guided once data is clean. */
+async function startGuidedLive() {
+  if (!protocol || info.demo || pendingGuided) return;
+  const b = $('btn-guided') as HTMLButtonElement;
+  b.disabled = true; b.textContent = 'Starting camera… sit as before';
+  const cam = new CameraSource((stream) => attachStream(stream), (m) => console.warn('[camera]', m), clock());
+  source = cam;
+  running = true;
+  $('btn-stop').hidden = false;
+  pendingGuided = true;
+  try {
+    await cam.start(onEvent);
+  } catch (e: any) {
+    pendingGuided = false; running = false;
+    await stopSource();
+    b.textContent = 'Camera could not start. Try again';
+  }
+  b.disabled = false;
+}
+
+/** Save the metric stream (if the person opted in). Called at the result, at the end, and on Stop. */
+async function saveStreamNow() {
+  if (info.demo || !recorder || !settings.saveStreams || !sessionId) return;
+  await api.saveStream(sessionId, JSON.stringify(recorder.toRecording('live session (real person)')));
+}

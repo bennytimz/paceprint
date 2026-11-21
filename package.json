@@ -17,7 +17,8 @@
     "spike": "npm run build && node dist/scripts/verify-sdk.js --spike",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "make-fixture": "esbuild scripts/make-fixture.ts --bundle --platform=node --format=cjs --outfile=dist/scripts/make-fixture.js --log-level=warning && node dist/scripts/make-fixture.js"
+    "make-fixture": "esbuild scripts/make-fixture.ts --bundle --platform=node --format=cjs --outfile=dist/scripts/make-fixture.js --log-level=warning && node dist/scripts/make-fixture.js",
+    "promote-recording": "esbuild scripts/promote-recording.ts --bundle --platform=node --format=cjs --outfile=dist/scripts/promote-recording.js --log-level=warning && node dist/scripts/promote-recording.js"
   },
   "dependencies": {
     "@smartspectra/node-sdk": "3.5.0"

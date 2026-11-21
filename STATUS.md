@@ -2,18 +2,27 @@ PLAN A (provisional — beat-level arterial pressure trace exists; daylight spik
 
 # STATUS (Lagos time)
 Started Sat Nov 21 00:20 → "start on Saturday" rules. Feature freeze **Sun Nov 22 08:00**. Submit by Sun 18:00.
-Ahead of plan: Tier 1 items 1–8 are built and run end-to-end in Judge Mode. **Not yet tested live on camera** (needs the owner: NEEDS_OWNER #2 and #4).
+Tier 1 items 1–8 built and running end-to-end in Judge Mode. **Not yet tested live with a person** (NEEDS_OWNER #1, #3).
+Claude must not turn on the camera or spend trial credits; all camera runs are owner tasks.
+(Correction: earlier entries here had wrong clock times; the work below happened Sat 00:20–01:30.)
+
+## Trial credits (checked Sat 01:10)
+- SDK 3.5.0 (`.d.ts`, JS, README, bundled docs) exposes **no credit or usage query**. Only `SmartSpectraErrorCode.kCreditExhausted = 4`, raised when credits run out (the app stops with a friendly message).
+- `.env` holds only `SMARTSPECTRA_API_KEY`; no portal config in the repo.
+- Presage's hosted MCP server documents `usage.get_plan` ("plan tier, remaining credits, next renewal"; credits counted per account). Not connected here. → NEEDS_OWNER #2 (portal or Discord).
+- Used so far: ~2 min of SDK time (60 s auth test + two 25 s network-audit runs, Sat 00:25–01:00).
+- Full live run ≈ 16 min camera time; the camera now switches off while the result is on screen.
 
 ## Done
-- 00:50 Item 1: repo, SDK 3.5.0 loads on Windows, key auth OK, docs/spike.md.
-- 01:40 Item 2: core pipeline (capture sim/replay, recorder, validity, protocol, analysis), simulated Judge fixture, tests.
-- 02:40 Items 3–8: Electron app (consent from the shared doc, setup checklist, refusal UI, warm-up strip, sweep + felt-ease, result curve + certainty, guided session, local store + delete-all), Judge Mode, verify-sdk. Item 9 time-to-lock and item 10 network audit done. Item 13 randomized order is a setting.
-- 03:00 README, docs/analysis.md, consent doc with measured network audit.
-- 03:40 Item 12 return-visit history, item 15 belly-first hint, item 16 Pace Card PNG; demo-script.md and devpost.md drafts.
+- Item 1: repo, SDK 3.5.0 on Windows, key auth OK, docs/spike.md.
+- Item 2: core pipeline (capture sim/replay, recorder, validity, protocol, analysis), Judge fixture, tests.
+- Items 3–8: Electron app, Judge Mode, verify-sdk, consent (shared doc), setup check, refusal UI, warm-up strip, sweep + felt-ease, result + certainty, guided session, local store + delete-all.
+- Items 9, 10, 12, 13, 15, 16: time to lock, measured network audit, past results, random order setting, belly hint, Pace Card PNG.
+- Brief moved to BRIEF.private.md (gitignored); public-safe CLAUDE.md. Camera off at result; recording saved at result, end and Stop; promote-recording script ready. 20 tests pass.
 
 ## Next
-- Owner live test (NEEDS_OWNER #2, #4) → fix what breaks → real Judge fixture from the saved recording → README verify-sdk output.
-- Then: accessibility pass, README GIF, video production support. Item 14 (adaptive nudging) deferred.
+- Prior art + SDK-claims alignment in README/docs/post; accessibility pass; tests; polish.
+- After owner's live run: promote the real recording to Judge Mode, paste verify-sdk output into README.
 
 ## Blockers / risks
-- Live path (renderer SDK via bindSmartSpectraIpc) is untested with a person in frame; only headless verify-sdk ran (dark room).
+- Live path (renderer SDK via bindSmartSpectraIpc) untested with a person in frame.

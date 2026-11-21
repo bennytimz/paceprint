@@ -201,3 +201,6 @@ body.reduced-motion * { transition: none !important; animation: none !important;
 .history ol { list-style: none; padding: 0; margin: 6px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
 .history li { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); }
 .history li.now { border-color: var(--breath); color: var(--breath); }
+
+.camtime { font-size: 13px; color: var(--muted); max-width: 420px; }
+.camtime b { color: var(--warn); font-weight: 600; }
