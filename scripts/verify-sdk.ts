@@ -50,6 +50,10 @@ const validationCounts: Record<string, number> = {};
 const errors: string[] = [];
 let startWall = 0;
 const tNow = () => (Date.now() - startWall) / 1000;
+// Recorded events go on the stream clock (packet frame time, which lags wall time by ~3.6 s), stamped by
+// arrival exactly like the app's camera-source.ts, so validation and pacer markers line up with the data.
+let lastPacketT: number | null = null, lastPacketWall = 0;
+const tStream = () => (lastPacketT === null ? 0 : lastPacketT + (Date.now() - lastPacketWall) / 1000);
 
 function jsonSafe(m: any): any {
   // shrink landmarks for the raw dump; convert Longs
@@ -68,15 +72,15 @@ async function run(metrics: number[], label: string): Promise<boolean> {
     logLevel: SPIKE ? SmartSpectraLogLevel.kInfo : SmartSpectraLogLevel.kWarning,
   });
   let fatal = false;
-  sdk.on('processingStatus', (s: number) => { events.push({ type: 'status', t: tNow(), status: s }); });
+  sdk.on('processingStatus', (s: number) => { events.push({ type: 'status', t: tStream(), status: s }); });
   sdk.on('validationStatus', (code: number, _ts: number, hint: string) => {
     const k = `${code} ${validationMessage(code).short}`;
     validationCounts[k] = (validationCounts[k] ?? 0) + 1;
-    events.push({ type: 'validation', t: tNow(), code, hint });
+    events.push({ type: 'validation', t: tStream(), code, hint });
   });
   sdk.on('error', (code: number, message: string, retryable: boolean) => {
     errors.push(`[${label}] error ${code}: ${message} (retryable=${retryable})`);
-    events.push({ type: 'error', t: tNow(), code, message, retryable });
+    events.push({ type: 'error', t: tStream(), code, message, retryable });
     if (!retryable) fatal = true;
   });
   sdk.on('metrics', (buf: Buffer, ts: number) => {
@@ -84,7 +88,9 @@ async function run(metrics: number[], label: string): Promise<boolean> {
     if (Buffer.isBuffer(m)) return;
     const t = tNow();
     if (SPIKE) raw.push({ t, ts, m: jsonSafe(m) });
-    events.push({ type: 'packet', p: norm.packet(m, ts) });
+    const p = norm.packet(m, ts);
+    lastPacketT = p.t; lastPacketWall = Date.now();
+    events.push({ type: 'packet', p });
     hit('face landmarks', m.face?.landmarks, t);
     hit('talking flag', m.face?.talking, t, (d) => (d.detected ? 1 : 0));
     hit('blinking', m.face?.blinking, t, (d) => (d.detected ? 1 : 0));
@@ -125,7 +131,7 @@ async function guide(stop: () => boolean) {
       else prompt = pace(t - 105, 5.0);
       const stage = t < 60 ? 'baseline' : t < 105 ? 'pace-7.0' : 'pace-5.0';
       const bpm = t < 60 ? 0 : t < 105 ? 7.0 : 5.0;
-      events.push({ type: 'pacer', t, bpm, stage });
+      events.push({ type: 'pacer', t: tStream(), bpm, stage });
     } else {
       prompt = `${Math.ceil((end - Date.now()) / 1000)} s left`;
     }

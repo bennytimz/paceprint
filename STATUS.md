@@ -76,8 +76,17 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Simulator gained `cardioDelayS` (default 0, so the Judge fixture is unchanged). 10 new tests in tests/warmup.test.ts; with the fixes removed, 5 of them fail. **56 tests pass**; typecheck and build OK.
 - Not known: whether the SDK needs another ~36 s warm-up after a mid-session dropout or after the camera restarts for the guided session. Either way, the `nopulse` refusal keeps that time out.
 
+## Spike attempt 2 (Sat Nov 21, ~21:32, owner ran it, 150 s): 10/10 signals, but nothing scoreable
+- Signals all PASS. Pulse and pressure waveform first at **17 s** this time (36 s in verify-sdk run 3), so the cardio start time varies; the warm-up gate waits for the waveform rather than a fixed time. Exposure locked this time (gain 4→5). Recording: recordings/spike-2026-11-21T20-34-25-448Z.* (gitignored).
+- **Talking flag is the blocker.** The SDK set `talking.detected` in 2787 of 4217 face packets: ~57 % in normal-breathing baseline, ~60 % at 7/min, ~77 % at 5/min, 100 % for the last 25 s. Under the app's rules it refuses 143 of 146 s, so every phase is excluded. Unknown whether the owner talked, or whether mouth-open slow breathing triggers it. **Decision needed from the owner.**
+- **Bug found and FIXED: false "No face".** Decoded protobuf messages read absent repeated fields as `[]`; the normalizer treated a packet without landmarks (~15 % of packets; landmarks arrive in ~85 %) as "no face", so `noface` flickered all session and the 2 s settle kept restarting. Now only a present-but-empty landmarks entry means no face. Test added; it fails without the fix.
+- **Spike recorder clock FIXED.** verify-sdk stamped validation/pacer events with wall time, ~3.58 s ahead of packet frame time (steady: 3.55–3.60 s). Now stamped on the stream clock like camera-source.ts. The live app was already correct.
+- **Exploratory, talking flag ignored (not a result):** our own beats on the real waveform look right (45 beats in 35 s, 100 % kept). At 7/min heart rate swung 2.8 bpm at the breathing pace vs 0.5 bpm at 13/min, but following was only 44 % (app minimum 50 %). Only 15 clean seconds at 5/min, too short to say anything.
+- Credits: 99 → 94 for this 150 s run (60 s run 3 cost 1). Doesn't fit a simple per-minute rate; at ~2 credits/min a full ~16 min live run costs ~32.
+- 57 tests pass; typecheck and build OK. Not committed yet.
+
 ## Next
-- Waiting on owner: the 150 s spike (#1, same setup as run 3), the one live run (#3). Credits: 99 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
+- Waiting on owner: decision on the talking flag (spike 2), then a spike rerun, then the one live run (#3). Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.
 
 ## Blockers / risks

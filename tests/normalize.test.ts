@@ -41,6 +41,14 @@ describe('Normalizer', () => {
     expect(p.motion).toBeCloseTo(0.1, 2); // 9.5 px of a 95 px face
     expect(p.pulseRate).toMatchObject({ v: 70, conf: 55, stable: true });
   });
+  it('does not call a packet without landmarks "no face" (protobuf default empty arrays)', () => {
+    const n = new Normalizer();
+    // like a decoded protobuf message: absent repeated fields read as [] from the prototype
+    const face = Object.create({ landmarks: [], talking: [] });
+    face.blinking = [{ stable: true, timestamp: us(0) }];
+    expect(n.packet({ face }, 0).face).toBeUndefined();
+    expect(n.packet({ face: { landmarks: [{ value: [], timestamp: us(0.1) }] } }, 0).face).toBe(false);
+  });
 });
 
 describe('recording merge for fixtures', () => {

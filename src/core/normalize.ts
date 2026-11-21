@@ -102,7 +102,10 @@ export class Normalizer {
     if (lm && lm.length > 10) {
       p.face = true;
       p.motion = this.motionOf(lm);
-    } else if (face.landmarks) {
+    } else if (face.landmarks?.length) {
+      // Only an entry that is present but carries no usable points means "no face". Decoded protobuf
+      // messages expose an empty default array for absent repeated fields, and landmarks arrive in only
+      // ~85 % of packets (live spike, Nov 21): a packet without them says nothing about the face.
       p.face = false;
     }
     return p;
