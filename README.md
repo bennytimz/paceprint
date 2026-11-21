@@ -8,7 +8,9 @@ It is a wellness tool for self-awareness. **Not a medical device**, not for diag
 
 > Built for the DEV x Presage SmartSpectra SDK Challenge (#presagechallenge).
 
-<!-- GIF: added after recording -->
+![Paceprint in Judge Mode: the measuring timer pauses with "Paused: Talking", readings drop to Not read, the refused stretch is shaded on the traces, then the result curve with felt ease beside it](docs/media/paceprint-judge-mode.gif)
+
+*Judge Mode with the bundled **simulated** session (a modelled person, labelled as such in the app). The person talks during the first pace: Paceprint pauses, says why, and excludes that stretch.*
 
 ## Who it's for
 A student in exam week who has tried a breathing app and wondered whether the pace it prescribes is right for them. Paceprint answers with their own data, and says so plainly when the data isn't good enough.

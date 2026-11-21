@@ -91,6 +91,10 @@ async function boot() {
       ? 'Judge Mode: a modelled person, not live data. No camera, no key, no network.'
       : 'Judge Mode: a real session replayed. No camera, no key, no network.';
     ($('btn-accept') as HTMLButtonElement).textContent = 'Accept and play the recorded session';
+    $('camtime').hidden = true;
+    const kind = recording.source === 'simulated' ? 'Simulated session' : 'Recorded session';
+    $('mini-placeholder').innerHTML = `<span>${kind}<br/><small>no camera in Judge Mode</small></span>`;
+    $('preview-placeholder').innerHTML = `<span>${kind}<br/><small>no camera in Judge Mode</small></span>`;
   }
   if (settings.consentAcceptedAt && !info.demo) {
     ($('chk-adult') as HTMLInputElement).checked = true;

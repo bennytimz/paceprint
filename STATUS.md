@@ -19,12 +19,11 @@ Claude must not turn on the camera or spend trial credits; all camera runs are o
 - Items 3–8: Electron app, Judge Mode, verify-sdk, consent (shared doc), setup check, refusal UI, warm-up strip, sweep + felt-ease, result + certainty, guided session, local store + delete-all.
 - Items 9, 10, 12, 13, 15, 16: time to lock, measured network audit, past results, random order setting, belly hint, Pace Card PNG.
 - Brief moved to BRIEF.private.md (gitignored); public-safe CLAUDE.md. Camera off at result; recording saved at result, end and Stop; promote-recording script ready. 20 tests pass.
-
 - Prior art (Presage Coherence app, Lehrer 2000, pace apps; no "first" claims); SDK claims aligned (unused quotient weight removed from code).
 - Accessibility pass (labels, focus, Esc order, reduced motion); tests for Plan C fallback, "no reliable result", validity timing, all 16 codes: 28 pass.
 
 ## Next
-- Prior art + SDK-claims alignment in README/docs/post; accessibility pass; tests; polish.
+- Polish without the camera: README GIF from Judge Mode, visual review of every screen, post draft details.
 - After owner's live run: promote the real recording to Judge Mode, paste verify-sdk output into README.
 
 ## Blockers / risks
