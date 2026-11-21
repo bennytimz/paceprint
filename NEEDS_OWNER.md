@@ -35,6 +35,14 @@ npm run talk-check
 15 s of normal breathing, then follow the prompt at 5 breaths/min for 60 s. It prints how often the flag
 fired in each part. Then tell Claude the result (or just run it with `!` in Claude Code).
 
+## 1c. Talk contrast (60 s of camera, about 2 credits)
+The talk check showed the talking flag on 93–100 % of the time while you were silent. This shows whether it
+reacts to speech at all. Same setup. 20 s silent with your mouth closed, then 20 s reading the sentence shown
+on screen aloud, over and over, then 20 s silent again.
+```powershell
+npm run talk-contrast
+```
+
 ## 2. Ask Presage how many trial minutes you have — NEEDED BY: Sat Nov 21, 10:00
 The SDK has no way to read your remaining credits (it only raises `kCreditExhausted` when they run out).
 Options, quickest first:

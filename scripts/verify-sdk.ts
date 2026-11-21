@@ -4,6 +4,8 @@
 // npm run talk-check   -> 75 s: 15 s normal breathing, then 60 s at 5 breaths/min through the nose,
 //                         mouth closed. Prints how often the SDK's talking flag fires (no coupling
 //                         numbers, by design) and saves the recording like the spike.
+// npm run talk-contrast -> 60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent. Shows whether
+//                         the talking flag tells silence from speech at all on this setup.
 //
 // Needs SMARTSPECTRA_API_KEY in .env and a webcam. Never prints the key.
 import * as fs from 'node:fs';
@@ -18,10 +20,14 @@ const ss = require('@smartspectra/node-sdk');
 const { SmartSpectraSDK, CameraSelection, breathingMetrics, cardioMetrics, faceMetrics, edaMetrics, decodeMetrics, SmartSpectraLogLevel } = ss;
 
 const TALK = process.argv.includes('--talk-check');
+const CONTRAST = process.argv.includes('--talk-contrast');
+const SENTENCE = 'The morning light came through the window and warmed the old wooden floor.';
+/** contrast parts: [stage, from s, to s] */
+const CONTRAST_PARTS = [['silent-1', 0, 20], ['aloud', 20, 40], ['silent-2', 40, 60]] as const;
 const SPIKE = process.argv.includes('--spike');
-const RECORD = SPIKE || TALK;
+const RECORD = SPIKE || TALK || CONTRAST;
 const TALK_WARM = 15;   // s of normal breathing first: the pulse starts 17-36 s in
-const SECONDS = SPIKE ? 150 : TALK ? 75 : Number(argFlag('--seconds') ?? 60);
+const SECONDS = SPIKE ? 150 : TALK ? 75 : CONTRAST ? 60 : Number(argFlag('--seconds') ?? 60);
 const ROOT = path.resolve(__dirname, '..', '..');
 
 function argFlag(name: string): string | undefined {
@@ -120,6 +126,8 @@ async function run(metrics: number[], label: string): Promise<boolean> {
   startWall ||= Date.now();
   console.log(`Measuring for ${SECONDS} s (${label}). Sit still, face and chest in view, don't talk.`);
   if (TALK) console.log('Breathe through your NOSE the whole time, mouth gently closed. Follow the prompt after the first 15 s.');
+  if (CONTRAST) console.log(`Silent for 20 s, then read this aloud, over and over, for 20 s, then silent again:
+  "${SENTENCE}"`);
   await guide(() => fatal);
   await sdk.stopAsync().catch(() => {});
   await sdk.destroy().catch(() => {});
@@ -142,6 +150,10 @@ async function guide(stop: () => boolean) {
     } else if (TALK) {
       prompt = t < TALK_WARM ? `nose, normal breathing (${Math.ceil(TALK_WARM - t)} s)` : `nose, ${pace(t - TALK_WARM, 5.0)}`;
       events.push({ type: 'pacer', t: tStream(), bpm: t < TALK_WARM ? 0 : 5.0, stage: t < TALK_WARM ? 'baseline' : 'pace-5.0' });
+    } else if (CONTRAST) {
+      const [stage, , to] = CONTRAST_PARTS.find(([, , b]) => t < b) ?? CONTRAST_PARTS[2];
+      prompt = stage === 'aloud' ? `READ ALOUD, repeat the sentence (${Math.ceil(to - t)} s)` : `silent, mouth closed (${Math.ceil(to - t)} s)`;
+      events.push({ type: 'pacer', t: tStream(), bpm: 0, stage });
     } else {
       prompt = `${Math.ceil((end - Date.now()) / 1000)} s left`;
     }
@@ -154,9 +166,15 @@ async function guide(stop: () => boolean) {
 /** Talking-flag summary per phase: share of flagged packets and burst lengths. No coupling numbers. */
 function printTalking() {
   const pk = events.flatMap((e) => (e.type === 'packet' && e.p.talking !== undefined ? [{ t: e.p.t, on: !!e.p.talking }] : []));
-  const start5 = events.find((e): e is Extract<StreamEvent, { type: 'pacer' }> => e.type === 'pacer' && e.bpm === 5.0)?.t ?? Infinity;
+  // parts come from the recorded stage markers (stream clock), so they line up with the packets
+  const LABELS: Record<string, string> = { baseline: 'normal breathing', 'pace-5.0': '5/min, nose', 'silent-1': 'silent', aloud: 'READING ALOUD', 'silent-2': 'silent again' };
+  const marks = events.filter((e): e is Extract<StreamEvent, { type: 'pacer' }> => e.type === 'pacer');
+  const parts: [string, number, number][] = [];
+  for (const m of marks) if (!parts.length || parts.at(-1)![0] !== m.stage) parts.push([m.stage, m.t, Infinity]);
+  parts.forEach((p, i) => { if (i === 0) p[1] = -Infinity; if (i + 1 < parts.length) p[2] = parts[i + 1][1]; });
   console.log('\n=== Talking flag (SDK) ===');
-  for (const [label, a, b] of [['normal breathing', -Infinity, start5], ['5/min, nose', start5, Infinity]] as const) {
+  for (const [stage, a, b] of parts) {
+    const label = LABELS[stage] ?? stage;
     const ps = pk.filter((p) => p.t >= a && p.t < b);
     if (!ps.length) { console.log(`${label.padEnd(17)} no talking-flag packets`); continue; }
     const bursts: number[] = [];
@@ -179,7 +197,8 @@ function printTalking() {
     if (b.length) line += `${a}s:${Math.round((100 * b.filter((p) => p.on).length) / b.length)}% `;
   }
   console.log(`per 5 s: ${line.trim()}`);
-  console.log('(Spike 2, mouth not controlled: about 60% during normal breathing, about 75% at 5/min.)');
+  if (TALK) console.log('(Spike 2, mouth not controlled: about 60% during normal breathing, about 75% at 5/min.)');
+  if (CONTRAST) console.log('(Talk check, silent and nose-breathing: 100% and 93%. A useful flag would be far higher while reading aloud than while silent.)');
 }
 
 function pace(dt: number, bpm: number): string {
@@ -221,13 +240,13 @@ function pace(dt: number, bpm: number): string {
   }
   for (const e of errors) console.log(e);
 
-  if (TALK) printTalking();
+  if (TALK || CONTRAST) printTalking();
   if (RECORD) {
     const dir = path.join(ROOT, 'recordings');
     fs.mkdirSync(dir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const name = TALK ? 'talkcheck' : 'spike';
-    const note = TALK ? 'talk-check: 15 s nose normal breathing, 60 s @5.0 nose' : 'spike: 60 s baseline, 45 s @7.0, 45 s @5.0';
+    const name = TALK ? 'talkcheck' : CONTRAST ? 'talkcontrast' : 'spike';
+    const note = TALK ? 'talk-check: 15 s nose normal breathing, 60 s @5.0 nose' : CONTRAST ? 'talk-contrast: 20 s silent, 20 s reading aloud, 20 s silent' : 'spike: 60 s baseline, 45 s @7.0, 45 s @5.0';
     const rec: Recording = { format: 'paceprint-stream', version: 1, createdAt: new Date().toISOString(), source: 'camera', note, events };
     fs.writeFileSync(path.join(dir, `${name}-${stamp}.stream.json`), JSON.stringify(rec));
     fs.writeFileSync(path.join(dir, `${name}-${stamp}.raw.json`), JSON.stringify({ tally, validationCounts, errors, raw }));

@@ -85,9 +85,18 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Credits: 99 → 94 for this 150 s run (60 s run 3 cost 1). Doesn't fit a simple per-minute rate; at ~2 credits/min a full ~16 min live run costs ~32.
 - 57 tests pass; typecheck and build OK. Not committed yet.
 
+## Talk check (Sat Nov 21, ~21:46, owner ran it, 75 s, nose breathing, mouth closed)
+- 10/10 signals; pulse/pressure first at 17.3 s again. Credits 94 → 91.
+- **Talking flag got worse, not better:** 100 % of packets in the 15 s of normal breathing (one 11.6 s burst), 93 % at 5/min (22 bursts, median 0.5 s, longest 10.9 s); every 5 s bin 73–100 %. Spike 2 (mouth not controlled): ~60 % / ~75 %. So mouth breathing is not the cause.
+- We read the field correctly: `face.talking[].detected` is the SDK's "talking/speech detection status" (generated.d.ts; Node metrics docs read it the same way). Presage's docs list no known limitations for it.
+- **Burst tolerance cannot help here:** with the flag on 93–100 % of the time, the gaps between bursts are tiny. Any rule loose enough to keep data would amount to ignoring the flag. No threshold changed; no coupling looked at.
+- Open question: does the flag tell silence from speech at all on this setup? Needs a contrast test (silent / reading aloud / silent). **Decision needed from the owner.**
+- Recording: recordings/talkcheck-2026-11-21T20-47-13-167Z.* (gitignored).
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
-- Waiting on owner: `npm run talk-check` (about 2–3 credits), then decide; then the spike rerun and the one live run (#3). Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
+- New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
+- Waiting on owner: `npm run talk-contrast` (NEEDS_OWNER 1c), then the talking-flag decision; then the spike rerun and the one live run (#3). Credits: 91. Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.
 
 ## Blockers / risks
