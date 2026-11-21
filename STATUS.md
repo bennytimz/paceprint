@@ -1,4 +1,4 @@
-PLAN A (provisional — beat-level arterial pressure trace exists; daylight spike will confirm real cardio data; app auto-falls back to Plan C breathing-only if not)
+PLAN A (confirmed live Sat Nov 21 ~21:20: beat-level pressure trace, pulse, breathing and HRV all arrived from a real person on the owner's key)
 
 # STATUS (Lagos time)
 Started Sat Nov 21 00:20 → "start on Saturday" rules. Feature freeze **Sun Nov 22 08:00**. Submit by Sun 18:00.
@@ -6,10 +6,11 @@ Tier 1 items 1–8 built and running end-to-end in Judge Mode. **Not yet tested 
 Claude must not turn on the camera or spend trial credits; all camera runs are owner tasks.
 (Correction: earlier entries here had wrong clock times; the work below happened Sat 00:20–01:30.)
 
-## Trial credits (checked Sat 01:10)
-- SDK 3.5.0 (`.d.ts`, JS, README, bundled docs) exposes **no credit or usage query**. Only `SmartSpectraErrorCode.kCreditExhausted = 4`, raised when credits run out (the app stops with a friendly message).
-- `.env` holds only `SMARTSPECTRA_API_KEY`; no portal config in the repo.
-- Presage's hosted MCP server documents `usage.get_plan` ("plan tier, remaining credits, next renewal"; credits counted per account). Registered in this project (Sat ~01:45, `claude mcp add --transport http smartspectra https://mcp.presagetech.com/mcp`) but it needs a one-time browser OAuth sign-in that only the owner can do, so **remaining credits are not known yet**. → NEEDS_OWNER #2 (`/mcp` → smartspectra → Authenticate, then say "credits?").
+## Trial credits (checked Sat Nov 21 21:09 via Presage MCP `usage.get_plan`)
+- **99 credits remaining** after verify-sdk run 3 (was 100), free tier, credit allowance not reported (null), renews **Dec 20, 2026**. Credits are counted per account.
+- **Not confirmed as minutes:** the API returns a bare credit count, and the SmartSpectra docs searched (Sat 21:09) don't say how a credit converts to time. Evidence so far: run 2 (60 s, almost nothing measured) left 100; run 3 (60 s, all signals) took it to 99. That fits about 1 credit per measured minute, but it's two data points; confirm in the Presage portal.
+- SDK 3.5.0 itself exposes no credit query; only `SmartSpectraErrorCode.kCreditExhausted = 4` when credits run out (the app stops with a friendly message).
+- NEEDS_OWNER #2 (MCP sign-in) done.
 - Used so far: ~2 min of SDK time (60 s auth test + two 25 s network-audit runs, Sat 00:25–01:00).
 - Full live run ≈ 16 min camera time; the camera now switches off while the result is on screen.
 
@@ -47,8 +48,36 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - PLV was 0.98–1.00 at every pace in every simulated run: now detected as saturated, dropped from the ranking, stated under the chart. Chart axis from 0 with part-range bars and a spread note; table shows each pace's three parts; flat results name the real range and the guided pace.
 - 14 new tests (tests/certainty.test.ts): 46 pass. Judge fixture still shows "Clear peak" in the app but sits at the 2-SE line (headless replay gives "weak"): expect the real recording to be judged on its own data. Cover/GIF unchanged.
 
+## Spike attempt 1 (Sat Nov 21, 21:00, owner ran it, ~3 min of credits)
+- The SDK, key and camera work: 4205 packets, face found, talking flag and blink arrived.
+- The SDK reported "Too dark" (code 5) from 0.7 s to the end (4486 of 4489 states), so it measured nothing: no breathing, pulse, pressure waveform or HRV. Cardio is still unconfirmed.
+- Recording kept locally: recordings/spike-2026-11-21T20-02-23-370Z.*.json (gitignored).
+- Rerun needs a bright, steady light in front of the face (daylight is best).
+
+## verify-sdk run 2 (Sat Nov 21, ~21:15, owner ran it, 60 s)
+- 2/10 signals: talking flag and blink PASS (1674 packets, first at 3.6 s). Face landmarks, breathing, chest/abdomen traces, pulse, pressure trace, HRV and EDA: no data.
+- Validation states: "Chest hidden" (code 7) 1784 times, "No face" once, "Good" once. Light was fine this time (no "Too dark"); framing was the problem: the SDK needs the chest in view, so it measured nothing. Cardio still unconfirmed.
+- Not pasted into README/post: a 2/10 result is not the evidence to show.
+- Credits checked straight after: still 100, so either a credit isn't a minute or the balance updates later.
+- Rerun: laptop on a table, sit ~1 m back so shoulders and upper chest are in frame (camera tilted down if needed), same bright light.
+
+## verify-sdk run 3 (Sat Nov 21, ~21:20, owner ran it, 60 s): 10/10 PASS
+- Face, talking, blink, breathing rate (first at 16.4 s, last 13.98/min), chest + abdomen traces, pulse rate (first at 36 s, last 88.34 bpm), **pressure trace (1386 samples, first at 36 s)**, HRV (first at 55 s), EDA. Validation: Good 1764, Too dark 24, No face 1.
+- Cardio warm-up is ~36 s before pulse/pressure appear; HRV needs ~55 s and none of its 9 values were stable. The settle phases must cover this.
+- SDK warning: this webcam driver has no auto-exposure lock or gain control, so auto exposure stays on during measurement (brightness dropped from 63 to 13 when it tried to lock). Possible source of the 24 "Too dark" moments and of drift in the pulse signal; keep the light steady and bright.
+- Output (signals block, SDK log lines dropped) pasted into README "Verify the SDK" and docs/devpost.md; that placeholder is gone.
+
+## Warm-up and HRV check (Sat Nov 21, ~21:40)
+- **Paces were already safe:** the SDK runs without a break from setup to the result, and the first pace's measure window starts after setup + 60 s baseline + 30 s settle (> 90 s), well past the 36 s cardio start.
+- **The baseline was not safe (FIXED).** Setup only needed 3 s of green, so the baseline could start ~5 s in, and the analysis would have used it before the waveform existed. `resample` holds edge values, so the missing ~30 s became a flat, invented heart rate. Two fixes:
+  - Validity now refuses everything until the pressure waveform arrives (`warming`, up to 60 s, then breathing-only fallback), and refuses any mid-session pause in the waveform over 3 s (`nopulse`). The averaged pulse rate does not count as the waveform. Setup shows a "Pulse reading started (takes about 40 s)" row, so Start stays locked until then.
+  - Analysis computes beats only inside stretches that actually have waveform samples (`coveredSpans`); gaps are never interpolated.
+- **HRV:** coupling uses only our own beat detection on the pressure waveform (`detectBeats` → `heartRateSeries` → `coupling`). The SDK's HRV values and stable flag only feed one display card. A test replays a session with HRV removed and with nonsense HRV: identical coupling.
+- Simulator gained `cardioDelayS` (default 0, so the Judge fixture is unchanged). 10 new tests in tests/warmup.test.ts; with the fixes removed, 5 of them fail. **56 tests pass**; typecheck and build OK.
+- Not known: whether the SDK needs another ~36 s warm-up after a mid-session dropout or after the camera restarts for the guided session. Either way, the `nopulse` refusal keeps that time out.
+
 ## Next
-- Waiting on owner: daylight spike (#1), MCP sign-in or credits answer (#2), the one live run (#3). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
+- Waiting on owner: the 150 s spike (#1, same setup as run 3), the one live run (#3). Credits: 99 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.
 
 ## Blockers / risks

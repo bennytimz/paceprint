@@ -4,7 +4,7 @@
 import type { StreamEvent, Packet } from './types';
 import { validationMessage } from './validation-codes';
 
-export type ReasonId = 'lost' | 'validation' | 'talking' | 'motion' | 'noface' | 'lowconf' | 'flicker' | 'settling';
+export type ReasonId = 'lost' | 'validation' | 'talking' | 'motion' | 'noface' | 'lowconf' | 'flicker' | 'settling' | 'warming' | 'nopulse';
 
 export interface Reason { id: ReasonId; short: string; tip: string }
 export interface Verdict { ok: boolean; reasons: Reason[] }
@@ -19,6 +19,11 @@ export const VALIDITY = {
   confGrace: 15,           // s after start before pressure confidence is enforced
   flickerMax: 0.6,         // flicker score (0..1) from the renderer's brightness probe
   settle: 2.0,             // s to stay invalid after a problem clears
+  /** s from the first packet to wait for the pulse waveform before falling back to breathing only.
+   *  Measured live (Nov 21): pulse rate and the pressure waveform first arrived at 36 s. */
+  cardioWaitS: 60,
+  /** s without new pressure-waveform samples, once it has started, before data is refused */
+  cardioLostAfter: 3.0,
 };
 
 export class ValidityMonitor {
@@ -30,6 +35,7 @@ export class ValidityMonitor {
   private lastFace: boolean | undefined;
   private lastConf: number | undefined;
   private cardioSeen = false;
+  private lastCardioT = -Infinity;
   private startT: number | null = null;
   private flicker = 0;
   private lastBadT = -Infinity;
@@ -53,7 +59,7 @@ export class ValidityMonitor {
       while (this.motion.length && p.t - this.motion[0].t > VALIDITY.motionWindow) this.motion.shift();
     }
     if (p.face !== undefined) this.lastFace = p.face;
-    if (p.pressure.length || p.pulseRate) this.cardioSeen = true;
+    if (p.pressure.length) { this.cardioSeen = true; this.lastCardioT = p.t; }
     if (p.pressureConf !== undefined) this.lastConf = p.pressureConf;
   }
 
@@ -80,6 +86,13 @@ export class ValidityMonitor {
       const grace = this.startT !== null && t - this.startT < VALIDITY.confGrace;
       if (this.cardioSeen && !grace && this.lastConf !== undefined && this.lastConf < VALIDITY.pulseConfMin) {
         add('lowconf', 'Weak pulse signal', 'The pulse reading is weak. More even front light usually helps.');
+      }
+      // The SDK's cardio output takes ~36 s to start. Nothing is usable before the pulse waveform arrives
+      // (unless it never does: then breathing-only mode), and a pause in the waveform is refused, never bridged.
+      if (!this.cardioSeen && this.startT !== null && t - this.startT < VALIDITY.cardioWaitS) {
+        add('warming', 'Pulse starting', 'The pulse reading takes about 40 s to start. Sit still and breathe normally.');
+      } else if (this.cardioSeen && t - this.lastCardioT > VALIDITY.cardioLostAfter) {
+        add('nopulse', 'Pulse paused', 'The pulse waveform stopped arriving. Keep your face in steady front light.');
       }
       if (this.flicker > VALIDITY.flickerMax) add('flicker', 'Flickering light', 'More even light: screens and some bulbs flicker. Try daylight or a steady lamp.');
     }

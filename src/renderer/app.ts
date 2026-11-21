@@ -275,6 +275,7 @@ const CHECKS: { id: string; label: string; bad: (codes: number, reasons: Set<str
   { id: 'light', label: 'Even, steady light', bad: (c, r) => [5, 6].includes(c) || r.has('flicker') },
   { id: 'still', label: 'Holding still', bad: (c, r) => c === 12 || r.has('motion') || c === 10 },
   { id: 'quiet', label: 'Not talking', bad: (_c, r) => r.has('talking') },
+  { id: 'pulse', label: 'Pulse reading started (takes about 40 s)', bad: (_c, r) => r.has('warming') || r.has('nopulse') },
 ];
 
 // sticky: the SDK may report a state once and keep it until it changes
@@ -289,7 +290,7 @@ function renderSetup(t: number) {
   const hint = (id: string) => {
     if (noData) return 'waiting…';
     if (id === 'face' || id === 'chest' || id === 'still' || id === 'light') return code ? validationMessage(code).tip : '';
-    const r = protocol!.verdict.reasons.find((x) => (id === 'quiet' ? x.id === 'talking' : x.id === id));
+    const r = protocol!.verdict.reasons.find((x) => (id === 'quiet' ? x.id === 'talking' : id === 'pulse' ? x.id === 'warming' || x.id === 'nopulse' : x.id === id));
     return r?.tip ?? '';
   };
   $('checklist').innerHTML = items.map((i) => `<li class="${i.ok ? 'ok' : ''}">${i.label}${i.ok ? '' : `<span class="hint">${escapeHtml(hint(i.id))}</span>`}</li>`).join('');

@@ -37,13 +37,14 @@ describe('no reliable reading', () => {
 describe('ValidityMonitor', () => {
   it('reports signal lost after the gap threshold and recovers only after settling', () => {
     const v = new ValidityMonitor();
-    v.ingest({ type: 'packet', p: pkt(10) });
+    const wave = (t: number) => ({ pressure: [{ t, v: 1 }] });
+    v.ingest({ type: 'packet', p: pkt(10, wave(10)) });
     v.ingest({ type: 'validation', t: 10, code: 0, hint: '' });
     expect(v.check(10.5).ok).toBe(true);
     expect(v.check(10 + VALIDITY.lostAfter + 0.1).reasons[0].id).toBe('lost');
-    v.ingest({ type: 'packet', p: pkt(14) });
+    v.ingest({ type: 'packet', p: pkt(14, wave(14)) });
     expect(v.check(14).reasons[0].id).toBe('settling');
-    v.ingest({ type: 'packet', p: pkt(14 + VALIDITY.settle) });
+    v.ingest({ type: 'packet', p: pkt(14 + VALIDITY.settle, wave(14 + VALIDITY.settle)) });
     expect(v.check(14 + VALIDITY.settle + 0.01).ok).toBe(true);
   });
   it('refuses on talking, motion, flicker and any non-OK validation code', () => {

@@ -46,7 +46,27 @@ npm run verify-sdk
 ```
 Runs the SDK for 60 s with your camera and prints PASS/FAIL per signal (face, talking flag, breathing traces and rate, pulse, pressure waveform, HRV, EDA) and every validation state seen.
 
-<!-- verify-sdk output from the owner's machine: added after the daylight run -->
+Output from a real run (Windows 11, built-in HP laptop webcam, SDK 3.5.0, Nov 21 2026; SDK log lines omitted):
+
+```
+=== Signals ===
+PASS  face landmarks   packets=1552 samples=1653 stable=1653 first@5.1s last=undefined
+PASS  talking flag     packets=1528 samples=1698 stable=1698 first@3.6s last=0.00
+PASS  blinking         packets=1528 samples=1698 stable=1698 first@3.6s last=0.00
+PASS  breathing rate   packets=21 samples=21 stable=12 first@16.4s last=13.98
+PASS  chest trace      packets=1524 samples=1652 stable=688 first@5.2s last=0.05
+PASS  abdomen trace    packets=1520 samples=1642 stable=685 first@5.2s last=-5.04
+PASS  pulse rate       packets=38 samples=38 stable=38 first@36.0s last=88.34
+PASS  pressure trace   packets=123 samples=1386 stable=1386 first@36.0s last=-0.08
+PASS  HRV              packets=9 samples=9 stable=0 first@55.0s last=25.60
+PASS  EDA trace        packets=123 samples=1446 stable=1446 first@36.0s last=0.04
+
+10/10 signals received.
+Validation states seen:
+  0 Good: 1764
+  1 No face: 1
+  5 Too dark: 24
+```
 
 ### Tests
 ```bash

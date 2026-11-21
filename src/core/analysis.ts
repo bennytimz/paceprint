@@ -217,10 +217,30 @@ export function splitValid(valid: Segment[], n: number): Segment[][] {
   return parts;
 }
 
+/**
+ * The parts of [a, b] where pressure-waveform samples actually exist (no gap over `maxGap` s),
+ * at least `minLen` s long. Resampling holds edge values and interpolates across gaps, so beats
+ * and heart rate are only ever computed inside these spans: missing waveform is never filled in.
+ */
+export function coveredSpans(pressure: Sample[], a: number, b: number, minLen: number, maxGap = 1.0): Segment[] {
+  const out: Segment[] = [];
+  let start: number | null = null, prev = -Infinity;
+  const close = () => { if (start !== null && prev - start >= minLen) out.push([start, prev]); start = null; };
+  for (const p of pressure) {
+    if (p.t < a || p.t > b) continue;
+    if (start !== null && p.t - prev > maxGap) close();
+    start ??= p.t;
+    prev = p.t;
+  }
+  close();
+  return out;
+}
+
 /** Coupling pooled over segments (each long enough for beats and a few breaths). */
 function couplingOver(s: StageInput, trace: Sample[], segs: Segment[], f0: number): { c: Coupling; kept: number } | null {
   const parts: { c: Coupling; w: number; kept: number }[] = [];
-  for (const [a, b] of segs) {
+  // 0.5 s slack: a fully covered piece ends at its last sample, a frame short of the piece's end
+  for (const [a, b] of segs.flatMap(([x, y]) => coveredSpans(s.pressure, x, y, Math.min(ANALYSIS.blockMinPieceS, y - x) - 0.5))) {
     const beats = detectBeats(s.pressure, a, b);
     const hrs = heartRateSeries(beats, a, b);
     if (!hrs || hrs.hr.some((v) => !Number.isFinite(v))) continue;
