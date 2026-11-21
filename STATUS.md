@@ -93,10 +93,22 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Open question: does the flag tell silence from speech at all on this setup? Needs a contrast test (silent / reading aloud / silent). **Decision needed from the owner.**
 - Recording: recordings/talkcheck-2026-11-21T20-47-13-167Z.* (gitignored).
 
+## Talk contrast (Sat Nov 21, ~21:53, owner ran it, 60 s)
+- Talking flag: **silent 64 %** (24 short bursts, longest 3.7 s), **reading aloud 96 %**, **silent again 96 %** (longest burst 8.8 s). The flag rose when speech started but did not drop when it stopped; silent periods across the three runs range 64–100 %.
+- Conclusion: on this setup the SDK talking flag cannot tell silence from speech, so it cannot do Rule 8's job on its own. No threshold changed, no coupling looked at.
+- Side observation: cardio came in only once (one packet at 35 s carrying ~11 s of waveform), then stopped for the rest of the run; no HRV; "Two faces" 37 times. Speaking may disrupt the cardio output. The `nopulse` refusal already keeps such gaps out.
+- Credits 91 → 90. Recording: recordings/talkcontrast-2026-11-21T20-53-51-443Z.* (gitignored).
+- **Decision needed from the owner:** how Rule 8 detects talking when the SDK flag is uninformative.
+
+## Breathing-trace talking detector (Sat Nov 21, ~22:15): rejected
+- Tested offline on the talk contrast and the talk check (silent control), chest trace 1–4 Hz in 4 s windows (`scripts/eval-talk-detector.ts`).
+- Share of 1–4 Hz power: 92 % of reading windows caught, 7 % false alarms on the silent talk check even with a threshold tuned on the same data; correlates +0.34 with follow score on silent paced windows. Absolute level: 25 % false alarms, r = 0.75 with breath size. Neither separates cleanly on both recordings, and both depend on how the person breathes, so a refusal built on them would bias the pace comparison.
+- Not adopted; reasons in docs/decisions.md. No threshold changed, no coupling looked at.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
-- Waiting on owner: `npm run talk-contrast` (NEEDS_OWNER 1c), then the talking-flag decision; then the spike rerun and the one live run (#3). Credits: 91. Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
+- Waiting on owner: how to detect talking. SDK flag uninformative (contrast test); breathing-trace detector rejected (circular, false alarms). Options left: mouth movement from face points (needs approval to record mouth points), ask Presage. Then the spike rerun and the one live run (#3). Credits: 90. Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.
 
 ## Blockers / risks
