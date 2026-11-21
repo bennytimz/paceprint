@@ -50,6 +50,9 @@ export class PersonModel {
   private beats: number[] = [];
   private hrHist: { t: number; v: number }[] = [];
   private brHist: { t: number; v: number }[] = [];
+  /** unwrapped breath phase and completed-cycle count (wobbles across the boundary are not new breaths) */
+  private phaseTotal = 0;
+  private cycles = 0;
   private lastBreathT = 0;
   t = 0;
 
@@ -76,9 +79,10 @@ export class PersonModel {
       const pull = o.follow * Math.sin(2 * Math.PI * (pacerPhase - this.breathPhase - 0.03));
       dphi = target + pull;
     }
-    const prevPhase = this.breathPhase;
     this.breathPhase = (this.breathPhase + dphi * dt + 1) % 1;
-    if (this.breathPhase < prevPhase) {
+    this.phaseTotal += dphi * dt;
+    if (Math.floor(this.phaseTotal) > this.cycles) {
+      this.cycles = Math.floor(this.phaseTotal);
       // a breath completed
       this.brHist.push({ t: this.t, v: 60 / Math.max(0.5, this.t - this.lastBreathT) });
       this.lastBreathT = this.t;
