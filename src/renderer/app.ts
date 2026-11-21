@@ -301,7 +301,7 @@ function renderSetup(t: number) {
   const wasDisabled = b.disabled;
   b.disabled = !ready || info.demo;
   if (wasDisabled && !b.disabled) b.focus();
-  if (info.demo) $('setup-msg').textContent = 'Recorded session: the person pressed Start when everything was green.';
+  if (info.demo) $('setup-msg').textContent = recording?.source === 'simulated' ? 'Simulated session: the modelled person starts once everything is green.' : 'Recorded session: the person pressed Start when everything was green.';
   else $('setup-msg').textContent = ready ? 'All green. Press Start when you are comfortable.' : allOk ? 'Hold it there…' : 'Everything must be green for a few seconds.';
 }
 $('btn-begin').addEventListener('click', () => protocol?.beginBaseline());
@@ -574,7 +574,8 @@ $('btn-back-result').addEventListener('click', () => { if (protocol?.result) sho
 // ------------------------------------------------------------------ your data
 async function refreshData() {
   const sum = await api.dataSummary();
-  $('data-dir').textContent = info.demo ? '(Judge Mode saves nothing)' : sum.dir;
+  $('data-dir').textContent = sum.dir;
+  $('data-demo-note').hidden = !info.demo;
   $('data-summary').textContent = `${sum.sessions} saved session${sum.sessions === 1 ? '' : 's'}, ${sum.recordings} signal recording${sum.recordings === 1 ? '' : 's'}.`;
   ($('set-streams') as HTMLInputElement).checked = settings.saveStreams;
   ($('set-motion') as HTMLInputElement).checked = settings.reducedMotion;

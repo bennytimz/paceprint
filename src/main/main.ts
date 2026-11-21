@@ -42,6 +42,9 @@ function createWindow() {
       if (process.env.PACEPRINT_AUTOPILOT === '1' && DEMO) {
         setTimeout(() => win?.webContents.executeJavaScript(`document.getElementById('chk-adult').click();document.getElementById('chk-wellness').click();document.getElementById('btn-accept').click();${process.env.PACEPRINT_SPEED ? `document.querySelector('[data-speed="${process.env.PACEPRINT_SPEED}"]').click();` : ''}`), 1500);
       }
+      if (process.env.PACEPRINT_EVAL && DEMO) {
+        setTimeout(() => win?.webContents.executeJavaScript(process.env.PACEPRINT_EVAL!), Number(process.env.PACEPRINT_EVAL_AT ?? 2.5) * 1000);
+      }
       times.forEach((s, i) => setTimeout(async () => {
         const img = await win!.webContents.capturePage();
         fs.writeFileSync(path.join(dir, `shot-${String(i).padStart(2, '0')}-${s}s.png`), img.toPNG());
@@ -105,7 +108,8 @@ app.whenReady().then(() => {
     return fs.readFileSync(file, 'utf8');
   });
   ipcMain.handle('store:settings', () => store.settings());
-  ipcMain.handle('store:saveSettings', (_e, s) => store.saveSettings(s));
+  let demoSettings: Record<string, unknown> = {};
+  ipcMain.handle('store:saveSettings', (_e, s) => (DEMO ? { ...store.settings(), ...(demoSettings = { ...demoSettings, ...s }) } : store.saveSettings(s)));
   ipcMain.handle('store:sessions', () => store.listSessions());
   ipcMain.handle('store:saveSession', (_e, s) => (DEMO ? 'demo-not-saved' : store.saveSession(s)));
   ipcMain.handle('store:deleteSession', (_e, id: string) => store.deleteSession(id));
