@@ -192,6 +192,7 @@ async function stopAll(reason = 'Stopped by you.') {
 }
 $('btn-stop').addEventListener('click', () => stopAll());
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('panel-data').hidden) { $('panel-data').hidden = true; $('btn-data').focus(); return; }
   if (e.key === 'Escape' && running) stopAll();
   if (!$('rate').hidden && /^[1-5]$/.test(e.key)) pickRating(Number(e.key));
 });
@@ -293,7 +294,9 @@ function renderSetup(t: number) {
   if (allOk) setupGreenSince ??= t; else setupGreenSince = null;
   const ready = setupGreenSince !== null && t - setupGreenSince >= 3;
   const b = $('btn-begin') as HTMLButtonElement;
+  const wasDisabled = b.disabled;
   b.disabled = !ready || info.demo;
+  if (wasDisabled && !b.disabled) b.focus();
   if (info.demo) $('setup-msg').textContent = 'Recorded session: the person pressed Start when everything was green.';
   else $('setup-msg').textContent = ready ? 'All green. Press Start when you are comfortable.' : allOk ? 'Hold it there…' : 'Everything must be green for a few seconds.';
 }
@@ -577,7 +580,7 @@ async function refreshData() {
   $('session-list').innerHTML = sessions.length ? sessions.map((s) => `<li><span>${new Date(s.createdAt).toLocaleString()} · ${s.bestPace ? `best ≈ ${s.bestPace}/min (${s.certainty})` : 'no clear result'}</span><button class="danger" data-del="${escapeHtml(String(s.id))}">Delete</button></li>`).join('') : '<li class="muted">No saved sessions.</li>';
   for (const b of $('session-list').querySelectorAll<HTMLButtonElement>('[data-del]')) b.addEventListener('click', async () => { await api.deleteSession(b.dataset.del); refreshData(); });
 }
-$('btn-data').addEventListener('click', () => { const d = $('panel-data'); d.hidden = !d.hidden; if (!d.hidden) refreshData(); });
+$('btn-data').addEventListener('click', () => { const d = $('panel-data'); d.hidden = !d.hidden; if (!d.hidden) { refreshData(); d.focus(); } });
 $('btn-close-data').addEventListener('click', () => { $('panel-data').hidden = true; });
 $('btn-open-folder').addEventListener('click', () => api.openDataFolder());
 let deleteArmed = false;

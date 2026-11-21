@@ -108,8 +108,8 @@
             <div class="chips" id="chips" aria-label="Signal checks"></div>
             <div class="warmup" id="warmup" aria-label="Warm-up windows"></div>
           </div>
-          <div class="trace"><div class="trace-head"><span class="dot breath"></span>Breathing (belly) <span class="ghost-key">grey = the guide · shaded = refused, not used</span></div><canvas id="cv-breath"></canvas></div>
-          <div class="trace"><div class="trace-head"><span class="dot heart"></span>Pulse waveform <span class="ghost-key">from the SDK, beat by beat</span></div><canvas id="cv-pulse"></canvas></div>
+          <div class="trace"><div class="trace-head"><span class="dot breath"></span>Breathing (belly) <span class="ghost-key">grey = the guide · shaded = refused, not used</span></div><canvas id="cv-breath" role="img" aria-label="Live belly breathing trace with the breathing guide; refused moments are shaded"></canvas></div>
+          <div class="trace"><div class="trace-head"><span class="dot heart"></span>Pulse waveform <span class="ghost-key">from the SDK, beat by beat</span></div><canvas id="cv-pulse" role="img" aria-label="Live pulse waveform from the SmartSpectra SDK"></canvas></div>
         </div>
       </div>
       <div class="row center"><button id="btn-end-guided" class="ghost" hidden>End session</button></div>
@@ -121,7 +121,7 @@
         <p class="eyebrow" id="rate-pace"></p>
         <h2 id="rate-q">How easy did that pace feel?</h2>
         <div class="rate-buttons" id="rate-buttons">
-          <button data-v="1"><b>1</b>Hard</button><button data-v="2"><b>2</b></button><button data-v="3"><b>3</b>OK</button><button data-v="4"><b>4</b></button><button data-v="5"><b>5</b>Easy</button>
+          <button data-v="1" aria-label="1, hard"><b>1</b>Hard</button><button data-v="2" aria-label="2"><b>2</b></button><button data-v="3" aria-label="3, OK"><b>3</b>OK</button><button data-v="4" aria-label="4"><b>4</b></button><button data-v="5" aria-label="5, easy"><b>5</b>Easy</button>
         </div>
         <p class="muted small" id="rate-note">Press 1 to 5. Your answer sits beside the measurement in the result.</p>
       </div>
@@ -175,7 +175,7 @@
     </section>
 
     <!-- Your data drawer -->
-    <aside id="panel-data" class="drawer" hidden aria-labelledby="data-h">
+    <aside id="panel-data" class="drawer" hidden aria-labelledby="data-h" tabindex="-1">
       <div class="drawer-head"><h2 id="data-h">Your data</h2><button id="btn-close-data" class="ghost" aria-label="Close">Close</button></div>
       <p class="small">Everything Paceprint keeps is on this computer, in <code id="data-dir"></code>.</p>
       <p class="small" id="data-summary"></p>

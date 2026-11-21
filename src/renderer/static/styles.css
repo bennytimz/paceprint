@@ -204,3 +204,6 @@ body.reduced-motion * { transition: none !important; animation: none !important;
 
 .camtime { font-size: 13px; color: var(--muted); max-width: 420px; }
 .camtime b { color: var(--warn); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.drawer:focus { outline: none; }

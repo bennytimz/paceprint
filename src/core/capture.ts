@@ -33,6 +33,8 @@ export interface SimOptions {
   episodes?: SimEpisode[];
   /** emit one packet every this many seconds (real SDK ≈ 0.036 s; fixtures use 0.5 s) */
   packetEvery?: number;
+  /** simulate a key without cardio metrics (no pulse, no pressure waveform) */
+  noCardio?: boolean;
 }
 
 /**
@@ -54,7 +56,7 @@ export class PersonModel {
   constructor(opts: SimOptions = {}) {
     this.o = {
       seed: 7, bestPace: 5.5, restingHr: 68, peakSwing: 5.5, freeBpm: 13, follow: 0.12,
-      episodes: [], packetEvery: 0.5, ...opts,
+      episodes: [], packetEvery: 0.5, noCardio: false, ...opts,
     };
     this.r = rng(this.o.seed);
   }
@@ -151,7 +153,7 @@ export class SimulatedStream {
       const talk = ep === 'talking' ? 0.25 * Math.sin(p.t * 9) : 0;
       this.buf.upper.push({ t: p.t, v: b.upper + jitter + talk });
       this.buf.lower.push({ t: p.t, v: b.lower + jitter + talk });
-      this.buf.pressure.push({ t: p.t, v: p.pressure() + (moving ? 1.5 * jitter : 0) });
+      if (!p.o.noCardio) this.buf.pressure.push({ t: p.t, v: p.pressure() + (moving ? 1.5 * jitter : 0) });
 
       if (p.t >= this.nextPacket) {
         this.nextPacket = p.t + p.o.packetEvery;
@@ -176,9 +178,10 @@ export class SimulatedStream {
       face: true,
       motion: ep === 'motion' ? 0.04 + 0.03 * p.rand() : 0.002 * p.rand(),
     };
-    if (t > 12 && Number.isFinite(pulse)) packet.pulseRate = { t, v: pulse, conf, stable: conf >= 40 };
+    if (p.o.noCardio) { packet.pressureConf = undefined; }
+    else if (t > 12 && Number.isFinite(pulse)) packet.pulseRate = { t, v: pulse, conf, stable: conf >= 40 };
     if (t > 30 && Number.isFinite(br)) packet.breathRate = { t, v: br, conf: ep ? 35 : 70, stable: !ep };
-    if (t > 60) packet.hrv = { t, rmssd: 38 + 4 * Math.sin(t / 50), sdnn: 52, meanNn: 60000 / pulse, baevsky: 90, conf: ep ? 30 : 65, stable: !ep };
+    if (t > 60 && !p.o.noCardio) packet.hrv = { t, rmssd: 38 + 4 * Math.sin(t / 50), sdnn: 52, meanNn: 60000 / pulse, baevsky: 90, conf: ep ? 30 : 65, stable: !ep };
     if (t > 36) packet.eda = [{ t, v: 0.5 + 0.1 * Math.sin(t / 20) }];
     this.buf = { upper: [], lower: [], pressure: [] };
     emit({ type: 'packet', p: packet });

@@ -52,7 +52,7 @@ npm run typecheck
 
 | SDK signal | What Paceprint does with it | Code |
 |---|---|---|
-| `cardio.arterialPressureTrace` (pulse waveform, ~30 Hz) | Detects each heartbeat, builds beat-to-beat heart rate, measures the heart-rate swing and phase-locking at each pace. This is the core measurement. | `src/core/analysis.ts` (`detectBeats`, `heartRateSeries`, `coupling`) |
+| `cardio.arterialPressureTrace` (beat-level pulse waveform; relative, uncalibrated, never blood pressure) | Detects each heartbeat, builds beat-to-beat heart rate, measures the heart-rate swing and phase-locking at each pace. This is the core measurement. | `src/core/analysis.ts` (`detectBeats`, `heartRateSeries`, `coupling`) |
 | `breathing.lowerTrace` / `upperTrace` (belly / chest) | Follow score (are you breathing with the guide?), time to lock, breathing phase for coupling; live trace on screen | `analysis.ts` (`adherence`, `timeToLock`), `renderer/charts.ts` |
 | `face.talking` | Refuses data while you talk (speech moves the chest); the timer waits | `src/core/validity.ts` |
 | `face.landmarks` | Face motion as a fraction of face width; refuses data while you move | `src/core/normalize.ts`, `validity.ts` |
