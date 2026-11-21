@@ -121,6 +121,17 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Consent sentence now overstates use ("to tell when you are talking"); revision drafted, not applied (NEEDS_OWNER 1f, owner's choice).
 - Credits 90 → 86. Recording: recordings/mouthcontrast-2026-11-21T21-16-06-753Z.* (gitignored). No coupling looked at; no threshold changed.
 
+## Talk check 2 (Sat Nov 21, 23:13, owner ran it, 75 s, nose)
+- 9/10 signals (no HRV); pulse/pressure back from 17.5 s; no "Two faces" states (629 in the mouth contrast).
+- SDK talking flag much lower than in talk check 1 (21:46): 53 % normal breathing, **21 % at 5/min**, but in 52 short bursts (median 0.1 s, all ≤ 2.0 s). Cause of the change unknown (setup, light, framing or a second face; not established).
+- Under the app's unchanged rules the 5/min part still keeps almost nothing: **2.2 of 60 s (4 %)**, longest clean stretch 1.5 s. Refused: talking 45 s (each blip holds 2 s, then 2 s settle), low pulse confidence 16 s, settling 9 s. No threshold changed; no coupling looked at.
+- Credits 86 → 85. Recording: recordings/talkcheck-2026-11-21T22-14-31-388Z.* (gitignored).
+
+## Burst tolerance: rule fixed before test (Sat Nov 21, 23:19)
+- Rule: talking = SDK flag on for at least 3 of the last 4 s (`src/core/talking.ts`), then the existing 2 s hold; single blips no longer refuse. Reason and test in docs/decisions.md, committed before testing. Not wired into validity.
+- Test: `scripts/eval-burst-tolerance.ts`. Reading from a new clean-setup talk-contrast run (NEEDS_OWNER 1h); silent control = talk check 2's 5/min part. Adopt only if ≥ 90 % reading windows refused and ≤ 5 % silent windows refused.
+- 5 new tests (tests/talking.test.ts); 70 pass.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).

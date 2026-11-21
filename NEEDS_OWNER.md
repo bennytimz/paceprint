@@ -64,6 +64,15 @@ npm run mouth-contrast
 ```
 Then Claude runs the fixed test (`scripts/eval-mouth-detector.ts`), which prints ADOPT or REJECT.
 
+## 1h. Talk contrast in the clean setup (60 s of camera, about 2 credits; 85 left)
+Tests the burst-tolerance rule (docs/decisions.md). Exactly the setup of talk check 2 (23:13), which got
+the flag down to 21 %, with only your face in view. 20 s silent, mouth closed; 20 s reading the sentence aloud;
+20 s silent.
+```powershell
+npm run talk-contrast
+```
+Then Claude runs the fixed test (`scripts/eval-burst-tolerance.ts`): ADOPT or REJECT.
+
 ## 2. Ask Presage how many trial minutes you have — NEEDED BY: Sat Nov 21, 10:00
 The SDK has no way to read your remaining credits (it only raises `kCreditExhausted` when they run out).
 Options, quickest first:
