@@ -32,8 +32,8 @@ relative and uncalibrated, never blood pressure) and builds its own beat-to-beat
      Hilbert; PLV = |mean(exp(i(φ_hr − φ_breath)))|, plus the mean lag. Edges (10 %) ignored.
    - **Cross-check**: median per-cycle peak-to-trough heart-rate swing.
 7. **Stage score.** Across kept paces, z-scores (with a spread floor: 0.5 bpm for swing, 0.1 for PLV, so noise
-   doesn't masquerade as a difference) combined 0.5 · swing + 0.3 · PLV, renormalized because the SDK's
-   pulse-respiration quotient is not delivered in SDK 3.5 (weight 0.2 kept in config for when it is).
+   doesn't masquerade as a difference) combined (0.5 · swing + 0.3 · PLV) / 0.8. Both are Paceprint's own
+   measures; no SDK-derived coupling score is used (SDK 3.5 does not deliver one).
 8. **Best pace.** Highest score; if it is not at the edge, a parabola through it and its neighbours (on swing)
    refines it, clamped to the neighbours and rounded to 0.25. Never more precision than that.
 9. **Certainty.** *Clear*: best swing ≥ 1.3× the median of the others, ≥ 0.75 bpm above the runner-up,

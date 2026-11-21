@@ -14,7 +14,8 @@ export const ANALYSIS = {
   lockWindowS: 15,
   minValidS: 45,           // a stage needs this much valid measuring time
   minSegmentS: 20,
-  weights: { amplitude: 0.5, plv: 0.3, sdkQuotient: 0.2 }, // SDK quotient not delivered by SDK 3.5 -> renormalized
+  /** stage score = our own measures only: heart-rate swing at the pace and phase locking (PLV) */
+  weights: { amplitude: 0.5, plv: 0.3 },
   ibiMin: 60 / 110,        // valid pulse 40..110 bpm
   ibiMax: 60 / 40,
 };
@@ -283,7 +284,7 @@ export function summarizeSweep(stages: StageResult[], baseline: StageResult | nu
   const scores = new Map<string, number>();
   if (mode === 'coupling') {
     const w = ANALYSIS.weights;
-    const wa = w.amplitude, wp = w.plv; // SDK quotient absent: renormalize the remaining weights
+    const wa = w.amplitude, wp = w.plv;
     const za = z(withCoupling.map((s) => s.coupling!.amplitude), 0.5); // bpm
     const zp = z(withCoupling.map((s) => s.coupling!.plv), 0.1);
     withCoupling.forEach((s, i) => scores.set(s.id, (wa * za[i] + wp * zp[i]) / (wa + wp)));

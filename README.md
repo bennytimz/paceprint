@@ -32,7 +32,7 @@ copy .env.example .env          # macOS/Linux: cp .env.example .env
 # edit .env: SMARTSPECTRA_API_KEY=your_key
 npm start
 ```
-Sit about an arm's length from the camera, laptop on a table, even light from the front, chest in view. The whole flow takes about 12 minutes plus the optional 5-minute guided session.
+Sit about an arm's length from the camera, laptop on a table, even light from the front, chest in view. **Estimated camera time: ~16 min** (about 11 min to your result, then an optional 5-minute guided session). The camera switches off while you read your result, so no SDK time is spent there.
 
 ### Check the SDK on your machine
 ```bash
@@ -62,7 +62,7 @@ npm run typecheck
 | `eda.trace` | Warm-up strip only (35 s window); not interpreted | `validity.ts` (`WARMUP`) |
 | `processingStatus`, `error` (incl. credits exhausted, auth) | Friendly stop screens; automatic fallback to breathing-only if the key isn't provisioned for cardio | `renderer/camera-source.ts`, `renderer/app.ts` |
 
-Not used, on purpose: expressions (no emotion inference), and the SDK's optional LLM "insights" (no AI services). Not available in SDK 3.5: inhale/exhale ratio, apnea, and the pulse-respiration quotient (see `docs/spike.md`).
+Not used, on purpose: expressions (no emotion inference), and the SDK's optional LLM "insights" (no AI services). Paceprint does not use an inhale/exhale ratio, apnea detection, or an SDK coupling score: SDK 3.5 does not deliver them (`docs/spike.md`). Every coupling number is Paceprint's own, computed from the beat-level pulse waveform and the breathing traces.
 
 ### The refusal
 When you talk, move, leave the frame, or the light flickers, Paceprint pauses the measuring timer, says why in plain words, marks that stretch as hatched "refused" on the live traces, drops every reading to **Not read**, and excludes it from the analysis. A pace that can't collect 45 s of clean data is shown as **not read** on the result curve instead of being guessed. When the signal stops, the guide and traces freeze and say "Signal lost"; nothing is animated to look alive.
@@ -109,8 +109,10 @@ The full notice is `docs/consent-and-data-handling.md`. The app shows **this sam
 | Credits exhausted | Use Judge Mode (`npm run demo`) |
 
 ## Prior art and inspiration
-- **Resonance-frequency breathing** is an established technique in heart-rate-variability biofeedback research: Lehrer, Vaschillo & Vaschillo (2000), *Resonant frequency biofeedback training to increase cardiac variability: rationale and manual for training*, Applied Psychophysiology and Biofeedback 25(3), 177–191. Paceprint is a camera-based wellness approximation of the idea, not a clinical assessment.
-- **Personal-pace apps**: several iOS apps already find a personal breathing pace from a fingertip on the phone camera or a chest strap, e.g. Outliyr's *Coherence* (4.5 to 6.5 breaths/min), *BreathTuner HRV*, *HRV4Biofeedback*. We did not invent pace finding. Paceprint's contribution: **webcam-only (face and chest, no touching the camera), validity-gated, honest about uncertainty, measured vs felt, consent-first, local, no AI service.**
+- **Resonance-frequency breathing** is an established technique in heart-rate-variability biofeedback research: Lehrer, Vaschillo & Vaschillo (2000), [*Resonant frequency biofeedback training to increase cardiac variability: rationale and manual for training*](https://link.springer.com/article/10.1023/A:1009554825745), Applied Psychophysiology and Biofeedback 25(3), 177–191. Paceprint is a camera-based wellness approximation of the idea, not a clinical assessment.
+- **Presage's own app**: [*Coherence by Presage Tech*](https://apps.apple.com/us/app/id6758461062) (iOS) is interactive breathwork with pulse and breathing tracking, squarely in Presage's wheelhouse and the closest relative of Paceprint. Its App Store description does not mention a pace sweep, and we could not verify whether it has one.
+- **Personal-pace apps**: several iOS apps find a personal breathing pace from a fingertip on the phone camera or a chest strap, e.g. Outliyr's [*Coherence*](https://outliyr.com/coherence) (4.5 to 6.5 breaths/min), [*BreathTuner HRV*](https://apps.apple.com/app/id1562688066), [*HRV4Biofeedback*](https://apps.apple.com/us/app/id1504638613). We did not invent pace finding.
+- **What Paceprint adds** is a combination, not a first: **webcam-only** (face and chest, nothing to touch), **validity-gated** (refuses talking, motion, poor framing, flicker), **honest about uncertainty** (clear / weak / no clear peak; "not read" paces), **measured vs felt**, **consent-first**, **local**, and **no AI service**.
 - Patterns from other #presagechallenge entries that shaped our design (ideas only; no code or visuals copied): per-metric "not read" instead of a guess (Roll Call, CalmDesk AI), freezing instead of faking a signal (Aura), a judge-runnable SDK verifier and plain-language validation states (StagePulse), an honest warm-up wait (Stillpoint), one module owning the SDK with a simulated source (Breathless Reef), body numbers beside the person's own answers (Ad Pulse Lab), a visible follow score (Slow-Breath Coach), settle time as a metric (HalfBeat), a private end-of-session summary (Viva Mode), and disclosing measured network traffic (Exhale).
 
 ## License
