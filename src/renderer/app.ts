@@ -7,7 +7,7 @@ import { ReplaySource } from '../core/capture';
 import { Protocol, PhaseName } from '../core/protocol';
 import { Pacer } from '../core/pacer';
 import { Recorder, parseRecording } from '../core/recorder';
-import { detectBeats, heartRateSeries, coupling, ANALYSIS, StageResult } from '../core/analysis';
+import { detectBeats, heartRateSeries, coupling, ANALYSIS, StageResult, guidedPace, SweepResult } from '../core/analysis';
 import { resample, bandpass } from '../core/dsp';
 import { validationMessage } from '../core/validation-codes';
 import { CameraSource } from './camera-source';
@@ -501,7 +501,7 @@ for (const b of $('rate-buttons').querySelectorAll<HTMLButtonElement>('button'))
 const CERT: Record<string, [string, string]> = {
   clear: ['Clear peak', 'One pace stood out above the others.'],
   weak: ['Weak peak', 'One pace was a little better. Treat it as a starting point.'],
-  flat: ['No clear peak', 'Your response was similar at every pace.'],
+  flat: ['No clear peak', 'No pace stood out clearly enough to name one. That is a real result.'],
   insufficient: ['Not enough good data', 'Too few paces gave trustworthy data.'],
 };
 
@@ -520,24 +520,37 @@ function showResult() {
   $('res-cert').innerHTML = `<b>${ct}</b><span>${cs}</span><br/><span>${r.mode === 'coupling' ? (info.demo && recording?.source === 'simulated' ? 'From beat-by-beat pulse timing (simulated pressure waveform).' : 'From beat-by-beat pulse timing (SDK pressure waveform).') : 'Breathing only: pulse data was not reliable or not available.'}</span>`;
   $('chart-measured').innerHTML = measuredChart(r);
   $('chart-felt').innerHTML = feltChart(r);
+  $('res-spread').textContent = spreadNote(r);
   const rows = p.stageResults.map((s) => stageRow(s, r.bestPace));
   $('res-table').innerHTML = `<thead><tr><th>Pace</th><th>Follow score</th><th>Time to lock</th><th>Heart-rhythm swing</th><th>Coupling (PLV)</th><th>Felt</th><th>Status</th></tr></thead><tbody>${rows.join('')}</tbody>`;
   const b = p.baselineResult;
   $('res-baseline').textContent = b?.coupling
     ? `Baseline (your normal breathing): heart-rhythm swing ${b.coupling.amplitude.toFixed(1)} bpm, average pulse ${b.coupling.meanHr.toFixed(0)} bpm.${r.vsBaseline ? ` At the best pace the swing was ${r.vsBaseline.toFixed(1)}× your baseline.` : ''}`
     : b?.status === 'excluded' ? `Baseline not read: ${b.reason}` : '';
-  const gp = r.bestPace !== null && r.certainty !== 'flat' ? r.bestPace : null;
+  const gpNum = r.certainty === 'insufficient' ? null : guidedPace(r);
+  const gp = gpNum === null ? null : gpNum % 1 === 0 ? gpNum.toFixed(1) : String(gpNum);
   ($('btn-guided') as HTMLButtonElement).textContent = `Start 5-minute guided session${gp ? ` at ${gp}/min` : ''}`;
+  if (r.certainty === 'flat' && gp) $('res-expl').textContent += ` The guided session uses ${gp}/min, the pace you found easiest and followed well.`;
   ($('btn-guided') as HTMLButtonElement).hidden = info.demo ? !running : false;
   if (!info.demo && source) void pauseCameraForResult();
   if (info.demo && replay) { heldSpeed = replay.speed; replay.speed = 0; ($('btn-guided') as HTMLButtonElement).textContent = 'Play the recorded guided session'; }
   saveSummary().then(renderHistory);
 }
 
+/** The real spread behind the curve, in bpm, and whether phase locking could tell paces apart. */
+function spreadNote(r: SweepResult): string {
+  if (r.mode !== 'coupling' || !r.checks.spread) return r.mode === 'coupling' ? '' : 'Breathing-only score: follow score and felt ease combined (0 to 1).';
+  const c = r.checks;
+  let t = `Axis starts at 0. Swing across paces: ${c.spread!.min.toFixed(1)} to ${c.spread!.max.toFixed(1)} bpm.`;
+  if (c.wobble !== null) t += ` Bars show the three 30-second parts of each pace (typical wobble ±${c.wobble.toFixed(1)} bpm).`;
+  if (c.plvSaturated && c.plvRange) t += ` Phase locking was ${c.plvRange.min.toFixed(2)} to ${c.plvRange.max.toFixed(2)} at every pace, too similar to tell paces apart, so the ranking uses swing alone.`;
+  return t;
+}
+
 function stageRow(s: StageResult, best: number | null): string {
   const excl = s.status === 'excluded';
   const isBest = !excl && best !== null && Math.abs(s.bpm - best) < 0.26;
-  return `<tr class="${excl ? 'excl' : ''} ${isBest ? 'best' : ''}"><td>${s.bpm.toFixed(1)}/min</td><td>${Number.isFinite(s.adherence) ? Math.round(s.adherence * 100) + '%' : '—'}</td><td>${Number.isFinite(s.lockTime) ? Math.round(s.lockTime) + ' s' : '—'}</td><td>${s.coupling ? s.coupling.amplitude.toFixed(1) + ' bpm' : '—'}</td><td>${s.coupling ? s.coupling.plv.toFixed(2) : '—'}</td><td>${s.felt ?? '—'}</td><td>${excl ? `Not read: ${escapeHtml(s.reason ?? '')}` : 'Trusted'}</td></tr>`;
+  return `<tr class="${excl ? 'excl' : ''} ${isBest ? 'best' : ''}"><td>${s.bpm.toFixed(1)}/min</td><td>${Number.isFinite(s.adherence) ? Math.round(s.adherence * 100) + '%' : '—'}</td><td>${Number.isFinite(s.lockTime) ? Math.round(s.lockTime) + ' s' : '—'}</td><td>${s.coupling ? s.coupling.amplitude.toFixed(1) + ' bpm' : '—'}${!excl && s.blocks.some((b) => Number.isFinite(b.amplitude)) ? ` <span class="parts" title="the same measure in each 30-second part">(${s.blocks.map((b) => (Number.isFinite(b.amplitude) ? b.amplitude.toFixed(1) : '–')).join(' · ')})</span>` : ''}</td><td>${s.coupling ? s.coupling.plv.toFixed(2) : '—'}</td><td>${s.felt ?? '—'}</td><td>${excl ? `Not read: ${escapeHtml(s.reason ?? '')}` : 'Trusted'}</td></tr>`;
 }
 
 async function saveSummary() {

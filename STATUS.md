@@ -42,6 +42,11 @@ Skeptical pass against the criteria (technology, usability, originality) and the
 10. **Usability and originality ceiling (not fixable now).** A result costs ~11 min of camera time (16 with the guided session) and trial credits a judge may not have; pace finding itself is prior art (Presage's Coherence app, Outliyr Coherence). The pitch must lean on webcam-only + visible refusal + measured vs felt, which only the real video can prove.
 Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); consent text is one bundled file shared by app, README summary and post; "nothing leaves your device" is never claimed.
 
+## Certainty made robust (Sat Nov 21, ~22:00)
+- Each pace's 90 s is split into three 30 s parts; "clear" needs the parts to agree and the peak to beat its neighbours (≥ 0.75 bpm, ≥ 1.15×, ≥ 2 SE of part wobble). Otherwise weak/flat, with the failing test named in plain words.
+- PLV was 0.98–1.00 at every pace in every simulated run: now detected as saturated, dropped from the ranking, stated under the chart. Chart axis from 0 with part-range bars and a spread note; table shows each pace's three parts; flat results name the real range and the guided pace.
+- 14 new tests (tests/certainty.test.ts): 46 pass. Judge fixture still shows "Clear peak" in the app but sits at the 2-SE line (headless replay gives "weak"): expect the real recording to be judged on its own data. Cover/GIF unchanged.
+
 ## Next
 - Waiting on owner: daylight spike (#1), MCP sign-in or credits answer (#2), the one live run (#3). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.

@@ -35,6 +35,10 @@ export interface SimOptions {
   packetEvery?: number;
   /** simulate a key without cardio metrics (no pulse, no pressure waveform) */
   noCardio?: boolean;
+  /** beat-to-beat heart-rate noise, bpm SD (default 0.6) */
+  hrNoise?: number;
+  /** slow random drift of the breathing-linked swing, as a fraction (0 = none; ~20 s correlation) */
+  swingJitter?: number;
 }
 
 /**
@@ -54,12 +58,13 @@ export class PersonModel {
   private phaseTotal = 0;
   private cycles = 0;
   private lastBreathT = 0;
+  private drift = 0;
   t = 0;
 
   constructor(opts: SimOptions = {}) {
     this.o = {
       seed: 7, bestPace: 5.5, restingHr: 68, peakSwing: 5.5, freeBpm: 13, follow: 0.12,
-      episodes: [], packetEvery: 0.5, noCardio: false, ...opts,
+      episodes: [], packetEvery: 0.5, noCardio: false, hrNoise: 0.6, swingJitter: 0, ...opts,
     };
     this.r = rng(this.o.seed);
   }
@@ -89,8 +94,10 @@ export class PersonModel {
     }
     // heart rate: swing with breathing; larger when slow paced breathing is near bestPace
     const pace = pacerBpm > 0 ? pacerBpm : o.freeBpm;
-    const swing = 1.6 + o.peakSwing * Math.exp(-((pace - o.bestPace) ** 2) / (2 * 0.6 ** 2)) * (pacerBpm > 0 ? 1 : 0);
-    const hr = o.restingHr + 2 * Math.sin(this.t / 41) + swing * Math.sin(2 * Math.PI * (this.breathPhase - 0.05)) + 0.6 * gaussian(this.r);
+    // AR(1) drift (only drawn when enabled, so default sessions stay bit-identical for a given seed)
+    if (o.swingJitter > 0) this.drift = this.drift * Math.exp(-dt / 20) + Math.sqrt(1 - Math.exp(-2 * dt / 20)) * gaussian(this.r);
+    const swing = Math.max(0, (1.6 + o.peakSwing * Math.exp(-((pace - o.bestPace) ** 2) / (2 * 0.6 ** 2)) * (pacerBpm > 0 ? 1 : 0)) * (1 + o.swingJitter * this.drift));
+    const hr = o.restingHr + 2 * Math.sin(this.t / 41) + swing * Math.sin(2 * Math.PI * (this.breathPhase - 0.05)) + o.hrNoise * gaussian(this.r);
     this.hrHist.push({ t: this.t, v: hr });
     this.beatAcc += (hr / 60) * dt;
     if (this.beatAcc >= 1) { this.beatAcc -= 1; this.beats.push(this.t); }

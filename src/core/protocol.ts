@@ -244,7 +244,7 @@ export class Protocol {
     }, this.hasCardio) : null;
     this.stageResults = this.order.map((_, i) => {
       const inp = this.stageInput(i);
-      return inp ? analyzeStage(inp, this.hasCardio) : { id: `pace-${this.order[i]}`, bpm: this.order[i], validSeconds: 0, adherence: NaN, lockTime: NaN, coupling: null, beatsKept: 0, status: 'excluded' as const, reason: 'Not measured.' };
+      return inp ? analyzeStage(inp, this.hasCardio) : { id: `pace-${this.order[i]}`, bpm: this.order[i], validSeconds: 0, adherence: NaN, lockTime: NaN, coupling: null, beatsKept: 0, status: 'excluded' as const, reason: 'Not measured.', blocks: [] };
     });
     this.result = summarizeSweep(this.stageResults, this.baselineResult);
   }

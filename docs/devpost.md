@@ -51,7 +51,7 @@ https://github.com/Bennytimz/paceprint (MIT)
 
 - **Beat by beat, not averaged.** The paces are 8.5 to 12 s per breath. The SDK pulse rate is a ~12 s average, which would erase the heart-rate swing. So Paceprint finds each beat on the pulse waveform itself, builds beat-to-beat heart rate, and measures the swing (a single-bin DFT at the pace) and phase locking (PLV) against the belly breathing trace. Everything about coupling is Paceprint's own calculation.
 - **Validity layer.** Every moment is accepted or refused. Refused time is shaded on the traces, excluded from the analysis, and the measuring timer waits for good data (up to 45 s extra); a pace with too little clean data is shown as "not read", never guessed.
-- **Honest output.** A certainty label (clear peak / weak peak / no clear peak today), "not read" paces, a warm-up strip, and a breathing-only mode that says so.
+- **Honest output.** A certainty label (clear peak / weak peak / no clear peak today) that has to survive a second look: each pace's 90 s is split into three 30 s parts, and "clear" needs every part to agree and the peak to beat the paces either side by more than the part-to-part wobble. If phase locking is near 1.0 at every pace, it is dropped from the ranking and the result says so. Plus "not read" paces, a warm-up strip, and a breathing-only mode that says so.
 
 Finding beats on the pulse waveform (`src/core/analysis.ts`):
 

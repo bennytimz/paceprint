@@ -72,7 +72,9 @@ export function measuredChart(r: SweepResult): string {
   const xmin = Math.min(...paces) - 0.25, xmax = Math.max(...paces) + 0.25;
   const coupling = r.mode === 'coupling';
   const vals = r.points.map((p) => (coupling ? p.amplitude : p.score)).filter((v): v is number => v !== null && Number.isFinite(v));
-  const ymax = coupling ? Math.max(2, Math.ceil(Math.max(...vals) * 1.15)) : Math.max(1, ...vals) * 1.15;
+  // the y axis always starts at 0 bpm, so a small spread looks small; part ranges are included in the scale
+  const partVals = coupling ? r.points.flatMap((p) => (p.status === 'ok' ? p.blocks.filter(Number.isFinite) : [])) : [];
+  const ymax = coupling ? Math.max(2, Math.ceil(Math.max(...vals, ...partVals) * 1.15)) : Math.max(1, ...vals) * 1.15;
   const x = (v: number) => L + ((v - xmin) / (xmax - xmin)) * (W - L - R);
   const y = (v: number) => H - B - (v / ymax) * (H - T - B);
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Response curve">`;
@@ -87,6 +89,13 @@ export function measuredChart(r: SweepResult): string {
   }
   const ok = r.points.filter((p) => p.status === 'ok' && (coupling ? p.amplitude : p.score) !== null).sort((a, b) => a.bpm - b.bpm);
   if (ok.length > 1) s += `<polyline class="curve" points="${ok.map((p) => `${x(p.bpm)},${y((coupling ? p.amplitude : p.score)!)}`).join(' ')}"/>`;
+  // range of the three 30 s parts of each pace: how much the measure wobbled within that pace
+  if (coupling) for (const p of r.points) {
+    const b = p.blocks.filter(Number.isFinite);
+    if (p.status !== 'ok' || b.length < 2) continue;
+    const lo = Math.min(...b), hi = Math.max(...b), cx = x(p.bpm);
+    s += `<g class="bar-range"><line x1="${cx}" y1="${y(lo)}" x2="${cx}" y2="${y(hi)}"/><line x1="${cx - 5}" y1="${y(lo)}" x2="${cx + 5}" y2="${y(lo)}"/><line x1="${cx - 5}" y1="${y(hi)}" x2="${cx + 5}" y2="${y(hi)}"/><title>${p.bpm}/min, three 30-second parts: ${b.map((v) => v.toFixed(1)).join(', ')} bpm</title></g>`;
+  }
   for (const p of r.points) {
     const v = coupling ? p.amplitude : p.score;
     if (p.status === 'ok' && v !== null) s += `<circle class="pt" cx="${x(p.bpm)}" cy="${y(v)}" r="5"><title>${p.bpm}/min: ${v.toFixed(2)}</title></circle>`;

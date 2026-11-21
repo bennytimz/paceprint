@@ -31,14 +31,31 @@ relative and uncalibrated, never blood pressure) and builds its own beat-to-beat
    - **Phase locking (PLV)**: both heart rate and breathing band-passed f₀ ± 0.05 Hz, analytic phase via FFT
      Hilbert; PLV = |mean(exp(i(φ_hr − φ_breath)))|, plus the mean lag. Edges (10 %) ignored.
    - **Cross-check**: median per-cycle peak-to-trough heart-rate swing.
+   - **Three parts**: each pace's 90 s of clean measuring time is also cut into three equal ~30 s parts
+     (`splitValid`, across any refused gaps), and the swing is measured in each part on its own (clean pieces ≥ 12 s).
 7. **Stage score.** Across kept paces, z-scores (with a spread floor: 0.5 bpm for swing, 0.1 for PLV, so noise
    doesn't masquerade as a difference) combined (0.5 · swing + 0.3 · PLV) / 0.8. Both are Paceprint's own
    measures; no SDK-derived coupling score is used (SDK 3.5 does not deliver one).
+   **PLV saturation:** if PLV spans less than 0.05 across paces, or is ≥ 0.95 at every pace, it carries no
+   information about which pace is best, so its weight drops to 0 and the result says so ("phase locking was
+   0.99 to 1.00 at every pace … the ranking uses swing alone"). The simulated person always saturates.
 8. **Best pace.** Highest score; if it is not at the edge, a parabola through it and its neighbours (on swing)
    refines it, clamped to the neighbours and rounded to 0.25. Never more precision than that.
-9. **Certainty.** *Clear*: best swing ≥ 1.3× the median of the others, ≥ 0.75 bpm above the runner-up,
-   PLV ≥ 0.5, and ≥ 4 paces kept. *Weak*: ≥ 1.1× and ≥ 0.3 bpm. Otherwise *flat* ("no clear peak today").
-   Fewer than 3 kept paces: *insufficient*, no result shown.
+9. **Certainty.** Two questions, both answered in bpm of heart-rate swing:
+   - **Do the parts agree?** Each of the three parts picks its own best pace (all paces compared on that part
+     alone). *Agree*: every part was read, every part's peak is within one step (0.5/min) of the overall peak,
+     and at least two are exactly on it.
+   - **Does the peak stand out from its neighbours?** Gap = peak swing minus the higher of the paces either side.
+     *Stands out*: the peak is the largest swing, gap ≥ 0.75 bpm, peak ≥ 1.15× the neighbours' mean, and
+     gap ≥ 2 standard errors (SE from the part-to-part SD of the two paces, SD/√3 each).
+   *Clear*: both, plus PLV ≥ 0.5 and ≥ 4 paces kept. *Weak*: gap ≥ 0.3 bpm, ≥ 1.1× the neighbours, and at least
+   two parts within one step of the peak. Otherwise *flat*. Fewer than 3 kept paces: *insufficient*, no result.
+   The explanation says which test failed (e.g. "only 0.4 bpm above the pace next to it", "the three 30-second
+   parts pointed to different paces (6.5, 5.5, 6.0)", or for flat the real range "1.1 to 1.8 bpm").
+   A flat result is shown in full (curve, part ranges, felt ease) and the guided session uses the easiest
+   well-followed pace.
+   **Chart:** the swing axis always starts at 0 bpm, so a small spread looks small; each point carries a bar
+   for its three parts, and a note states the spread across paces and the typical wobble within one.
 10. **Baseline comparison.** The same swing measured during 60 s of free breathing (at the person's own
     dominant breathing frequency). Reported only as a ratio to the person's own baseline, never against norms.
 
@@ -49,6 +66,12 @@ certainty at most "weak". The guided session then uses the most comfortable well
 
 ## Validation of the method
 - Unit tests on synthetic signals: beat detection recovers 72 bpm; coupling recovers a 4 bpm swing at 0.1 Hz with PLV > 0.95; adherence separates following (r > 0.9) from not following (r < 0.4).
+- Certainty tests (`tests/certainty.test.ts`) on exact synthetic stage results: clear (parts agree, peak stands
+  out), noisy (same averages but parts disagree; a peak inside the wobble), a peak only 0.4 bpm above its
+  neighbour, flat (spread 2.0 to 2.2 bpm), and PLV saturation (a 0.004 PLV edge can't move the best pace).
+  On simulated people: a strong modelled peak is clear at the right pace; a flat person with a drifting swing is
+  never clear (5 seeds); a noisy person (small peak, heavy drift, extra beat noise) is never called clear more than
+  one step from the modelled pace (6 seeds). A wider probe (12 noisy, 8 flat seeds) gave the same picture.
 - End-to-end tests with a simulated person (breathing as an oscillator pulled toward the pacer, heart-rate swing peaking at a chosen pace): the modelled best pace (5.5) is recovered; talking and motion are excluded and the window extended; a stage ruined by motion is excluded with a reason; a flat person gets "flat" or "weak", never "clear".
 - **Not yet validated on real people.** The daylight spike and user tests will show how the method behaves on real webcam data. Results are a wellness estimate, not a clinical resonance-frequency assessment.
 
