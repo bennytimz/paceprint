@@ -1,6 +1,9 @@
 // npm run verify-sdk   -> ~60 s live check, prints PASS/FAIL per signal (judge-runnable)
 // npm run spike        -> 150 s guided spike (baseline, then 7 and 5 breaths/min),
 //                         saves raw payloads + a normalized metric stream (no video) to recordings/
+// npm run talk-check   -> 75 s: 15 s normal breathing, then 60 s at 5 breaths/min through the nose,
+//                         mouth closed. Prints how often the SDK's talking flag fires (no coupling
+//                         numbers, by design) and saves the recording like the spike.
 //
 // Needs SMARTSPECTRA_API_KEY in .env and a webcam. Never prints the key.
 import * as fs from 'node:fs';
@@ -14,8 +17,11 @@ import { validationMessage } from '../src/core/validation-codes';
 const ss = require('@smartspectra/node-sdk');
 const { SmartSpectraSDK, CameraSelection, breathingMetrics, cardioMetrics, faceMetrics, edaMetrics, decodeMetrics, SmartSpectraLogLevel } = ss;
 
+const TALK = process.argv.includes('--talk-check');
 const SPIKE = process.argv.includes('--spike');
-const SECONDS = SPIKE ? 150 : Number(argFlag('--seconds') ?? 60);
+const RECORD = SPIKE || TALK;
+const TALK_WARM = 15;   // s of normal breathing first: the pulse starts 17-36 s in
+const SECONDS = SPIKE ? 150 : TALK ? 75 : Number(argFlag('--seconds') ?? 60);
 const ROOT = path.resolve(__dirname, '..', '..');
 
 function argFlag(name: string): string | undefined {
@@ -69,7 +75,7 @@ async function run(metrics: number[], label: string): Promise<boolean> {
     apiKey: key,
     requestedMetrics: metrics,
     enableTelemetry: false,
-    logLevel: SPIKE ? SmartSpectraLogLevel.kInfo : SmartSpectraLogLevel.kWarning,
+    logLevel: RECORD ? SmartSpectraLogLevel.kInfo : SmartSpectraLogLevel.kWarning,
   });
   let fatal = false;
   sdk.on('processingStatus', (s: number) => { events.push({ type: 'status', t: tStream(), status: s }); });
@@ -87,7 +93,7 @@ async function run(metrics: number[], label: string): Promise<boolean> {
     const m = decodeMetrics(buf);
     if (Buffer.isBuffer(m)) return;
     const t = tNow();
-    if (SPIKE) raw.push({ t, ts, m: jsonSafe(m) });
+    if (RECORD) raw.push({ t, ts, m: jsonSafe(m) });
     const p = norm.packet(m, ts);
     lastPacketT = p.t; lastPacketWall = Date.now();
     events.push({ type: 'packet', p });
@@ -113,6 +119,7 @@ async function run(metrics: number[], label: string): Promise<boolean> {
   }
   startWall ||= Date.now();
   console.log(`Measuring for ${SECONDS} s (${label}). Sit still, face and chest in view, don't talk.`);
+  if (TALK) console.log('Breathe through your NOSE the whole time, mouth gently closed. Follow the prompt after the first 15 s.');
   await guide(() => fatal);
   await sdk.stopAsync().catch(() => {});
   await sdk.destroy().catch(() => {});
@@ -132,6 +139,9 @@ async function guide(stop: () => boolean) {
       const stage = t < 60 ? 'baseline' : t < 105 ? 'pace-7.0' : 'pace-5.0';
       const bpm = t < 60 ? 0 : t < 105 ? 7.0 : 5.0;
       events.push({ type: 'pacer', t: tStream(), bpm, stage });
+    } else if (TALK) {
+      prompt = t < TALK_WARM ? `nose, normal breathing (${Math.ceil(TALK_WARM - t)} s)` : `nose, ${pace(t - TALK_WARM, 5.0)}`;
+      events.push({ type: 'pacer', t: tStream(), bpm: t < TALK_WARM ? 0 : 5.0, stage: t < TALK_WARM ? 'baseline' : 'pace-5.0' });
     } else {
       prompt = `${Math.ceil((end - Date.now()) / 1000)} s left`;
     }
@@ -139,6 +149,37 @@ async function guide(stop: () => boolean) {
     await new Promise((r) => setTimeout(r, 250));
   }
   process.stdout.write('\n');
+}
+
+/** Talking-flag summary per phase: share of flagged packets and burst lengths. No coupling numbers. */
+function printTalking() {
+  const pk = events.flatMap((e) => (e.type === 'packet' && e.p.talking !== undefined ? [{ t: e.p.t, on: !!e.p.talking }] : []));
+  const start5 = events.find((e): e is Extract<StreamEvent, { type: 'pacer' }> => e.type === 'pacer' && e.bpm === 5.0)?.t ?? Infinity;
+  console.log('\n=== Talking flag (SDK) ===');
+  for (const [label, a, b] of [['normal breathing', -Infinity, start5], ['5/min, nose', start5, Infinity]] as const) {
+    const ps = pk.filter((p) => p.t >= a && p.t < b);
+    if (!ps.length) { console.log(`${label.padEnd(17)} no talking-flag packets`); continue; }
+    const bursts: number[] = [];
+    let from: number | null = null, prev = 0;
+    for (const p of ps) {
+      if (p.on && from === null) from = p.t;
+      if (!p.on && from !== null) { bursts.push(prev - from); from = null; }
+      prev = p.t;
+    }
+    if (from !== null) bursts.push(prev - from);
+    bursts.sort((x, y) => x - y);
+    const on = ps.filter((p) => p.on).length;
+    const med = bursts.length ? bursts[Math.floor(bursts.length / 2)] : 0;
+    console.log(`${label.padEnd(17)} flagged ${((100 * on) / ps.length).toFixed(0)}% of ${ps.length} packets | bursts ${bursts.length}, median ${med.toFixed(1)} s, longest ${(bursts.at(-1) ?? 0).toFixed(1)} s`);
+  }
+  let line = '';
+  const t0 = pk[0]?.t ?? 0, t1 = pk.at(-1)?.t ?? 0;
+  for (let a = Math.floor(t0 / 5) * 5; a < t1; a += 5) {
+    const b = pk.filter((p) => p.t >= a && p.t < a + 5);
+    if (b.length) line += `${a}s:${Math.round((100 * b.filter((p) => p.on).length) / b.length)}% `;
+  }
+  console.log(`per 5 s: ${line.trim()}`);
+  console.log('(Spike 2, mouth not controlled: about 60% during normal breathing, about 75% at 5/min.)');
 }
 
 function pace(dt: number, bpm: number): string {
@@ -180,14 +221,17 @@ function pace(dt: number, bpm: number): string {
   }
   for (const e of errors) console.log(e);
 
-  if (SPIKE) {
+  if (TALK) printTalking();
+  if (RECORD) {
     const dir = path.join(ROOT, 'recordings');
     fs.mkdirSync(dir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const rec: Recording = { format: 'paceprint-stream', version: 1, createdAt: new Date().toISOString(), source: 'camera', note: 'spike: 60 s baseline, 45 s @7.0, 45 s @5.0', events };
-    fs.writeFileSync(path.join(dir, `spike-${stamp}.stream.json`), JSON.stringify(rec));
-    fs.writeFileSync(path.join(dir, `spike-${stamp}.raw.json`), JSON.stringify({ tally, validationCounts, errors, raw }));
-    console.log(`Saved recordings/spike-${stamp}.{stream,raw}.json (metric streams only, no video).`);
+    const name = TALK ? 'talkcheck' : 'spike';
+    const note = TALK ? 'talk-check: 15 s nose normal breathing, 60 s @5.0 nose' : 'spike: 60 s baseline, 45 s @7.0, 45 s @5.0';
+    const rec: Recording = { format: 'paceprint-stream', version: 1, createdAt: new Date().toISOString(), source: 'camera', note, events };
+    fs.writeFileSync(path.join(dir, `${name}-${stamp}.stream.json`), JSON.stringify(rec));
+    fs.writeFileSync(path.join(dir, `${name}-${stamp}.raw.json`), JSON.stringify({ tally, validationCounts, errors, raw }));
+    console.log(`Saved recordings/${name}-${stamp}.{stream,raw}.json (metric streams only, no video).`);
   }
   process.exit(pass >= 3 ? 0 : 1);
 })();

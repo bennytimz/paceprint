@@ -25,6 +25,16 @@ It runs 150 s: 60 s normal breathing, then follow the terminal prompt at **7 bre
 - If it prints `Failed to load device keys`, `kMetricNotAuthorized` (13) or FAIL on pulse/pressure: your key
   isn't provisioned for cardio. Do task 2 as well, and ask for cardio to be enabled.
 
+## 1b. Talk check (75 s of camera, about 2–3 credits)
+Spike 2 had the SDK's talking flag on most of the time, so the app refused almost everything. This checks
+whether breathing through the nose stops it. Same setup as before (bright steady light, ~1 m back, chest in
+view). Breathe through your **nose** the whole time, mouth gently closed, and don't speak.
+```powershell
+npm run talk-check
+```
+15 s of normal breathing, then follow the prompt at 5 breaths/min for 60 s. It prints how often the flag
+fired in each part. Then tell Claude the result (or just run it with `!` in Claude Code).
+
 ## 2. Ask Presage how many trial minutes you have — NEEDED BY: Sat Nov 21, 10:00
 The SDK has no way to read your remaining credits (it only raises `kCreditExhausted` when they run out).
 Options, quickest first:

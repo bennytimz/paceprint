@@ -86,7 +86,8 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - 57 tests pass; typecheck and build OK. Not committed yet.
 
 ## Next
-- Waiting on owner: decision on the talking flag (spike 2), then a spike rerun, then the one live run (#3). Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
+- Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
+- Waiting on owner: `npm run talk-check` (about 2–3 credits), then decide; then the spike rerun and the one live run (#3). Credits: 94 after spike 2 (#2 done). Then promote the real recording, paste verify-sdk output (README + post), regenerate the GIF, cut + narrate the video.
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.
 
 ## Blockers / risks
