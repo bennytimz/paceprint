@@ -46,16 +46,8 @@ npm run talk-contrast
 ## 1d. Consent sentence: DONE (approved Sat Nov 21 22:12, with "or any images" added)
 Applied to `docs/consent-and-data-handling.md` (shown in the app as-is); app recordings now keep the lip ratio.
 
-## 1f. Consent sentence must change: the lip detector was rejected (22:17)
-The approved sentence says the lip number is used "to tell when you are talking". The test rejected the
-detector, so the app would compute the number without using it. Pick one (nothing is changed until you do):
-
-**Option A (recommended): stop computing it in the app, and delete the sentence.** Data minimisation: if it
-isn't used, don't make or keep it. The test scripts can still compute it for your own test runs.
-
-**Option B: keep it in saved session data for testing, and say so.** Replace the sentence with:
-
-> From the face position points Paceprint computes one number, how far apart your lips are, which is being tested as a way to tell when you are talking and is not used in your result; if you save session data, only that number is kept, never the points or any images.
+## 1f. Consent sentence: DONE (option A, Sat 23:08)
+The app no longer computes the lip number; the sentence is deleted from the consent notice.
 
 ## 1g. "Two faces" in the last run
 The SDK reported "Two faces" 629 times during the mouth contrast, and no pulse data arrived at all (pulse,

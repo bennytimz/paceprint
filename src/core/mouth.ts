@@ -1,5 +1,5 @@
-// Mouth-opening talking detector (candidate; not wired into validity until it passes the test logged in
-// docs/decisions.md). From the SDK's 478-point face mesh we compute ONE number per frame, the lip-opening
+// Mouth-opening talking detector: REJECTED by its pre-registered test (docs/decisions.md, Nov 21). Kept as
+// a documented finding and for the owner's test script; the app does not compute or use it. From the SDK's 478-point face mesh we compute ONE number per frame, the lip-opening
 // ratio, and keep nothing else from the face points. Speech moves the lips several times a second
 // (syllables, ~2-7 Hz); breathing, even through the mouth at 5/min, opens them slowly (< 0.5 Hz). The
 // score only looks at the fast band, so how slowly or regularly someone breathes cannot raise it.

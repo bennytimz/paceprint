@@ -14,7 +14,7 @@
 ## Full details
 
 ### What Paceprint reads
-While the camera is on, the SmartSpectra SDK turns the video into signals: breathing traces (chest and belly), breathing rate, pulse rate, a pulse waveform, heart-rate variability, a talking flag, a blinking flag, face position points, and an electrodermal-activity estimate. Paceprint uses these to guide you and to compute its result. From the face position points Paceprint computes one number, how far apart your lips are, to tell when you are talking; if you save session data, only that number is kept, never the points or any images. Paceprint does not use facial-expression or emotion readings.
+While the camera is on, the SmartSpectra SDK turns the video into signals: breathing traces (chest and belly), breathing rate, pulse rate, a pulse waveform, heart-rate variability, a talking flag, a blinking flag, face position points, and an electrodermal-activity estimate. Paceprint uses these to guide you and to compute its result. Paceprint does not use facial-expression or emotion readings.
 
 ### What is stored, where, and for how long
 - **Session summaries:** date and time, the paces tested, per-pace follow score, time to lock, heart-rhythm swing, your 1-5 ease ratings, the baseline values, and the result. Stored as files in this computer's app data folder (shown in the app under "Your data"). Kept until you delete them.

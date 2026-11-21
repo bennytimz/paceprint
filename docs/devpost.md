@@ -42,7 +42,7 @@ https://github.com/Bennytimz/paceprint (MIT)
 | `cardio.arterialPressureTrace` (beat-level pulse waveform; relative, never blood pressure) | Detects each heartbeat, builds beat-to-beat heart rate, measures the heart-rate swing and phase locking at each pace. The core measurement. |
 | `breathing.lowerTrace` / `upperTrace` (belly / chest) | Follow score (are you breathing with the guide?), time to lock, breathing phase for coupling, live trace on screen |
 | `face.talking` | Refuses data while you talk (speech moves the chest); the timer waits |
-| `face.landmarks` | Face motion as a fraction of face width; refuses data while you move. Also one lip-opening ratio per frame (lip gap / mouth width), being tested as our own talking check because the SDK's talking flag stayed on while silent in our tests; only that number is kept |
+| `face.landmarks` | Face motion as a fraction of face width; refuses data while you move |
 | `validationStatus` (all 16 codes) | Each mapped to a plain instruction ("Hold still", "Add more even light", "Sit back so your chest is in view") |
 | Confidence / `stable` flags | Pulse 40, breathing 45, HRV 50 before a number is shown as Trusted; talking, motion and flicker are checked independently |
 | `cardio.pulseRate`, `breathing.rate`, `cardio.hrv` | Context only, with Trusted / Not read states and a warm-up strip; **not** used for coupling |

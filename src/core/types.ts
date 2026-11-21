@@ -42,8 +42,8 @@ export interface Packet {
   motion?: number;
   /** face present in this packet */
   face?: boolean;
-  /** lip-opening ratio per landmark frame (lip gap / mouth width). The only number kept from the face
-   *  points; named in the consent text. */
+  /** lip-opening ratio per landmark frame (lip gap / mouth width). Owner test scripts only; the app
+   *  never computes it (mouth detector rejected, docs/decisions.md). */
   mouth?: Sample[];
   eda: Sample[];
 }

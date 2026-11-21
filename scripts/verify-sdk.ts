@@ -63,7 +63,7 @@ function hit(name: string, arr: any[] | undefined, t: number, valueOf = (m: any)
 
 const events: StreamEvent[] = [];
 const raw: any[] = [];
-const norm = new Normalizer();
+const norm = new Normalizer(0, { mouth: process.argv.includes('--mouth-contrast') }); // lip ratio only for the mouth test
 const validationCounts: Record<string, number> = {};
 const errors: string[] = [];
 let startWall = 0;

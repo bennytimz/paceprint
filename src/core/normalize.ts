@@ -20,7 +20,9 @@ export function toNum(x: unknown): number {
 export class Normalizer {
   private t0Us: number | null = null;
   /** offset (s) added to every time, so a restarted camera continues the same session clock */
-  constructor(private readonly offsetS = 0) { this.lastT = offsetS; }
+  /** opts.mouth: compute the lip-opening ratio. Only the owner's test script (verify-sdk --mouth-contrast)
+   *  sets it; the app does not (the detector was rejected, docs/decisions.md). */
+  constructor(private readonly offsetS = 0, private readonly opts: { mouth?: boolean } = {}) { this.lastT = offsetS; }
   private prevCentroid: { x: number; y: number } | null = null;
 
   /** seconds since the first timestamp seen */
@@ -109,13 +111,15 @@ export class Normalizer {
       // ~85 % of packets (live spike, Nov 21): a packet without them says nothing about the face.
       p.face = false;
     }
-    // one lip-opening ratio per landmark frame; the points themselves are never kept
-    const mouth: Sample[] = [];
-    for (const f of face.landmarks ?? []) {
-      const t = this.sec(f?.timestamp), v = lipRatio(f?.value);
-      if (Number.isFinite(t) && Number.isFinite(v)) mouth.push({ t, v });
+    // test scripts only: one lip-opening ratio per landmark frame; the points themselves are never kept
+    if (this.opts.mouth) {
+      const mouth: Sample[] = [];
+      for (const f of face.landmarks ?? []) {
+        const t = this.sec(f?.timestamp), v = lipRatio(f?.value);
+        if (Number.isFinite(t) && Number.isFinite(v)) mouth.push({ t, v });
+      }
+      if (mouth.length) p.mouth = mouth;
     }
-    if (mouth.length) p.mouth = mouth;
     return p;
   }
 

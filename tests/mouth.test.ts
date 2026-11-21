@@ -56,13 +56,17 @@ describe('speech score', () => {
 
 describe('what is kept', () => {
   const us = (s: number) => 1_795_000_000_000_000 + s * 1e6;
-  it('the normalizer keeps one ratio per landmark frame and no face points', () => {
-    const n = new Normalizer();
+  it('the app normalizer computes no lip ratio at all (detector rejected)', () => {
+    const p = new Normalizer().packet({ face: { landmarks: [{ value: mesh(5), timestamp: us(0) }] } }, 0);
+    expect(p.mouth).toBeUndefined();
+  });
+  it('the test-script normalizer keeps one ratio per landmark frame and no face points', () => {
+    const n = new Normalizer(0, { mouth: true });
     const p = n.packet({ face: { landmarks: [{ value: mesh(5), timestamp: us(0) }, { value: mesh(10), timestamp: us(0.033) }] } }, 0);
     expect(p.mouth!.map((s) => s.v)).toEqual([expect.closeTo(0.1, 6), expect.closeTo(0.2, 6)]);
     expect(JSON.stringify(p)).not.toMatch(/"x":/);
   });
-  it('app recordings drop the ratio until the consent text covers it', () => {
+  it('recordings drop the ratio by default', () => {
     const e = { type: 'packet' as const, p: { t: 1, upper: [], lower: [], pressure: [], eda: [], mouth: [{ t: 1, v: 0.12 }] } };
     expect((compactEvent(e) as any).p.mouth).toBeUndefined();
     const rec = new Recorder('camera');
