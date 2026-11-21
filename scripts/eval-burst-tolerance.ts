@@ -17,9 +17,12 @@ const CLEAN_SETUP_FROM = '2026-11-21T22-00';  // file stamps are UTC; 22:00 UTC 
 
 const dir = path.join(__dirname, '..', '..', 'recordings');
 const newest = (re: RegExp) => fs.readdirSync(dir).filter((f) => re.test(f)).sort().pop();
-const contrastName = process.argv[2] ? path.basename(process.argv[2]) : newest(/^talkcontrast-.*\.stream\.json$/);
-const controlName = process.argv[3] ? path.basename(process.argv[3]) : 'talkcheck-2026-11-21T22-14-31-388Z.stream.json';
-if (!contrastName || contrastName.slice(13, 29) < CLEAN_SETUP_FROM) {
+const CONTROL_ONLY = process.argv.includes('--control-only');  // the same check on the control alone; no verdict
+const args = process.argv.slice(2).filter((x) => x !== '--control-only');
+const contrastName = args[0] ? path.basename(args[0]) : newest(/^talkcontrast-.*\.stream\.json$/);
+const controlName = args[1] ? path.basename(args[1]) : 'talkcheck-2026-11-21T22-14-31-388Z.stream.json';
+const stamp = /^talkcontrast-(\d{4}-\d\d-\d\dT\d\d-\d\d)/.exec(contrastName ?? '')?.[1];
+if (!CONTROL_ONLY && (!stamp || stamp < CLEAN_SETUP_FROM)) {
   console.error(`No talk-contrast run from the clean setup yet (newest: ${contrastName ?? 'none'}). Run: npm run talk-contrast`);
   process.exit(2);
 }
@@ -57,9 +60,15 @@ function refusal(rec: any) {
   return { windows };
 }
 
-console.log(`Rule: talking when >= ${SUSTAINED.minFraction * 100}% of flag packets in the last ${SUSTAINED.windowS} s say talking; then the existing ${VALIDITY.talkingHold} s hold.`);
+console.log(`Rule: talking when the flag was on for >= ${SUSTAINED.minFraction * SUSTAINED.windowS} of the last ${SUSTAINED.windowS} s; then the existing ${VALIDITY.talkingHold} s hold.`);
+if (CONTROL_ONLY) {
+  const sil = refusal(load(controlName)).windows('pace-5.0');
+  const fr = sil.filter(Boolean).length / sil.length;
+  console.log(`Control only (${controlName}): silent 5/min windows refused ${(fr * 100).toFixed(0)}% of ${sil.length} (needs <= ${MAX_FALSE * 100}%). No verdict without the reading run.`);
+  process.exit(0);
+}
 console.log(`Reading: ${contrastName}\nControl: ${controlName}`);
-const contrast = refusal(load(contrastName)), control = refusal(load(controlName));
+const contrast = refusal(load(contrastName!)), control = refusal(load(controlName));
 const rd = contrast.windows('aloud');
 const sil = control.windows('pace-5.0');
 const caught = rd.filter(Boolean).length / rd.length;

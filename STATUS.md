@@ -131,6 +131,7 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Rule: talking = SDK flag on for at least 3 of the last 4 s (`src/core/talking.ts`), then the existing 2 s hold; single blips no longer refuse. Reason and test in docs/decisions.md, committed before testing. Not wired into validity.
 - Test: `scripts/eval-burst-tolerance.ts`. Reading from a new clean-setup talk-contrast run (NEEDS_OWNER 1h); silent control = talk check 2's 5/min part. Adopt only if ≥ 90 % reading windows refused and ≤ 5 % silent windows refused.
 - 5 new tests (tests/talking.test.ts); 70 pass.
+- Control half run after the rule was committed (68416e0): silent 5/min windows refused **2 % of 54** (limit 5 %). No verdict until the clean-setup reading run (NEEDS_OWNER 1h). Script fixes after commit, none touching the rule or pass checks: `--control-only` mode, file-stamp guard by regex (a stray argument passed the old text comparison), startup line now describes the rule in seconds.
 
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
