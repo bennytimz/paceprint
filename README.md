@@ -17,19 +17,23 @@ A student in exam week who has tried a breathing app and wondered whether the pa
 
 ## Try it
 
-### Judge Mode (no key, no camera, no network)
-```bash
-npm install
-npm run demo
-```
-Plays a bundled session through the real app and analysis code. A banner says what it is: today the bundled fixture is a **simulated person** (`tests/fixtures/judge-simulated.json`), clearly labelled; it includes a talking moment and a movement moment so you can see the app refuse that data. Use the 1×/4×/12×/30× buttons to change speed.
-
-### Live, with your webcam
-Requirements: Windows 11 (also macOS Apple Silicon / Linux x64 per the SDK), **Node 22** (`node -v`), a webcam, and a SmartSpectra API key from <https://physiology.presagetech.com/>.
+Requirements for both modes: **Node 22** (22.12 or newer; check with `node -v`) and git. Clean-clone install and Judge Mode checked on Windows 11 with Node 22.
 ```bash
 git clone https://github.com/Bennytimz/paceprint
 cd paceprint
-npm install                     # also installs the SDK's native runtime (a few hundred MB)
+npm install                     # about 1 minute; downloads ~350 MB, mostly the SDK's native runtime
+```
+
+### Judge Mode (no key, no camera; no network once installed)
+```bash
+npm run demo
+```
+The first run also downloads the Electron binary once (~100 MB). After that, Judge Mode needs no network.
+Plays a bundled session through the real app and analysis code. A banner says what it is: today the bundled fixture is a **simulated person** (`tests/fixtures/judge-simulated.json`), clearly labelled; it includes a talking moment and a movement moment so you can see the app refuse that data. Use the 1×/4×/12×/30× buttons to change speed.
+
+### Live, with your webcam
+Also needed: a webcam and a SmartSpectra API key from <https://physiology.presagetech.com/>. We built and tested on Windows 11; the SDK also lists macOS (Apple Silicon) and Linux x64, which we have not tested.
+```bash
 copy .env.example .env          # macOS/Linux: cp .env.example .env
 # edit .env: SMARTSPECTRA_API_KEY=your_key
 npm start

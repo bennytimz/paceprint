@@ -12,3 +12,5 @@
 - **2026-11-21 03:00 — Store lives in src/main/store.ts** (needs fs), not src/core as the brief sketched; core stays Electron/Node-free.
 - **2026-11-21 03:10 — Validation state is sticky** until the SDK reports a new one (safe whether the SDK reports per frame or on change). Packet time comes from measurement timestamps; status/validation events are stamped on the same stream clock by arrival.
 - **2026-11-21 03:30 — Adaptive pace nudging (Tier 3 #14) deferred** until real-data behaviour is known; a fixed pace is the honest default.
+- **2026-11-21 20:30 — Simulated data is never labelled "SDK".** Judge Mode with the simulated fixture labels pulse, breathing, HRV and the pulse trace "simulated", not "SDK": the banner already said "not live data", and the cards contradicted it.
+- **2026-11-21 20:30 — Dev dependencies upgraded for a clean audit.** vitest 3 → 5.1 and esbuild 0.25 → 0.28 to clear `npm audit` (2 critical, dev-only). Engines raised to Node >=22.12 because vitest 5 requires it.

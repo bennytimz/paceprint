@@ -109,7 +109,7 @@
             <div class="warmup" id="warmup" aria-label="Warm-up windows"></div>
           </div>
           <div class="trace"><div class="trace-head"><span class="dot breath"></span>Breathing (belly) <span class="ghost-key">grey = the guide · shaded = refused, not used</span></div><canvas id="cv-breath" role="img" aria-label="Live belly breathing trace with the breathing guide; refused moments are shaded"></canvas></div>
-          <div class="trace"><div class="trace-head"><span class="dot heart"></span>Pulse waveform <span class="ghost-key">from the SDK, beat by beat</span></div><canvas id="cv-pulse" role="img" aria-label="Live pulse waveform from the SmartSpectra SDK"></canvas></div>
+          <div class="trace"><div class="trace-head"><span class="dot heart"></span>Pulse waveform <span class="ghost-key" id="pulse-src">from the SDK, beat by beat</span></div><canvas id="cv-pulse" role="img" aria-label="Live pulse waveform from the SmartSpectra SDK"></canvas></div>
         </div>
       </div>
       <div class="row center"><button id="btn-end-guided" class="ghost" hidden>End session</button></div>

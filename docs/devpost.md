@@ -23,7 +23,7 @@ It's a wellness tool for self-awareness, not a medical device.
 
 ⟦PLACEHOLDER: GIF from the real recorded session⟧
 
-Try it without a camera or key (Judge Mode replays a bundled session, clearly labelled as simulated or recorded):
+Try it without a camera or key (Judge Mode replays a bundled session, clearly labelled as simulated or recorded). Needs Node 22.12+ and git; `npm install` downloads about 350 MB (mostly the SDK runtime):
 
 ```bash
 git clone https://github.com/Bennytimz/paceprint.git
@@ -105,6 +105,9 @@ This is the "In short" notice shown in the app before the camera turns on (the f
 - **The one network connection.** The camera analysis uses Presage's SmartSpectra SDK. It runs on this computer but connects to Presage (`cont-api.physiology.presagetech.com`) to check the API key, count usage, and download its models. Paceprint switches off the SDK's optional telemetry.
 - **You are in control.** The camera starts only after you accept. A "Camera live" light shows whenever it is on. Stop turns it off at once.
 - **18+ only.**
+
+## Agent Session
+Not included: the build sessions contain personal paths and details.
 
 ## Prior art
 Resonance-frequency breathing is established in HRV-biofeedback research (Lehrer, Vaschillo & Vaschillo, 2000). Presage's own *Coherence by Presage Tech* app offers interactive breathwork with pulse and breathing tracking (we could not verify whether it runs a pace sweep), and phone apps such as Outliyr's Coherence, BreathTuner HRV and HRV4Biofeedback find a personal pace from a fingertip on the camera. Paceprint doesn't claim to be first. What it adds is the combination: webcam-only, validity-gated, honest about uncertainty, measured vs felt, consent-first, local, and no AI service.

@@ -95,6 +95,7 @@ async function boot() {
     const kind = recording.source === 'simulated' ? 'Simulated session' : 'Recorded session';
     $('mini-placeholder').innerHTML = `<span>${kind}<br/><small>no camera in Judge Mode</small></span>`;
     $('preview-placeholder').innerHTML = `<span>${kind}<br/><small>no camera in Judge Mode</small></span>`;
+    if (recording.source === 'simulated') { $('pulse-src').textContent = 'simulated in the SDK format, beat by beat'; $('cv-pulse').setAttribute('aria-label', 'Simulated pulse waveform (Judge Mode)'); }
   }
   if (settings.consentAcceptedAt && !info.demo) {
     ($('chk-adult') as HTMLInputElement).checked = true;
@@ -449,16 +450,17 @@ function renderReadouts(t: number) {
   const p = protocol!;
   const wu = Object.fromEntries(p.warmup().map((w) => [w.id, w.progress >= 1]));
   const ok = p.verdict.ok;
+  const origin = info.demo && recording?.source === 'simulated' ? 'simulated' : 'SDK';
   const ro = (k: string, v: string, unit: string, trusted: boolean, src: string) =>
     `<div class="ro ${trusted ? '' : 'notread'}" title="${src}"><div class="k">${k}</div><div class="v">${trusted ? v : '—'} <small>${unit}</small></div><span class="s ${trusted ? '' : 'no'}">${trusted ? 'Trusted' : 'Not read'}</span></div>`;
   const pulseOk = !!latest.pulse && latest.pulse.stable && ok && wu.pulse && t - latest.pulse.t < 5;
   const brOk = !!latest.breath && latest.breath.conf >= 45 && ok && wu.breathing && t - latest.breath.t < 5;
   const hrvOk = !!latest.hrv && latest.hrv.stable && ok && wu.hrv && t - latest.hrv.t < 5;
   $('readouts').innerHTML =
-    ro('Pulse (SDK, 12 s avg)', fmt(latest.pulse?.v), 'bpm', pulseOk, 'SDK pulse rate; trusted when confidence ≥ 40, data valid and 12 s window full') +
-    ro('Breathing (SDK, 30 s)', fmt(latest.breath?.v, 1), '/min', brOk, 'SDK breathing rate; trusted when confidence ≥ 45 and 30 s window full') +
+    ro(`Pulse (${origin}, 12 s avg)`, fmt(latest.pulse?.v), 'bpm', pulseOk, 'SDK pulse rate; trusted when confidence ≥ 40, data valid and 12 s window full') +
+    ro(`Breathing (${origin}, 30 s)`, fmt(latest.breath?.v, 1), '/min', brOk, 'SDK breathing rate; trusted when confidence ≥ 45 and 30 s window full') +
     ro('Heart-rhythm swing', fmt(swing.v, 1), 'bpm', swing.trusted, 'Paceprint: beat-by-beat heart rate from the pulse waveform, swing at the guide pace over the last 30 s of clean data') +
-    ro('HRV (RMSSD, 60 s)', fmt(latest.hrv?.rmssd), 'ms', hrvOk, 'SDK HRV; trusted when confidence ≥ 50 and 60 s window full');
+    ro(origin === 'SDK' ? 'HRV (RMSSD, 60 s)' : 'HRV (simulated, 60 s)', fmt(latest.hrv?.rmssd), 'ms', hrvOk, 'SDK HRV; trusted when confidence ≥ 50 and 60 s window full');
 }
 
 function chime() {
@@ -515,7 +517,7 @@ function showResult() {
   $('res-expl').textContent = r.explanation;
   const [ct, cs] = CERT[r.certainty];
   $('res-cert').className = `cert ${r.certainty}`;
-  $('res-cert').innerHTML = `<b>${ct}</b><span>${cs}</span><br/><span>${r.mode === 'coupling' ? 'From beat-by-beat pulse timing (SDK pressure waveform).' : 'Breathing only: pulse data was not reliable or not available.'}</span>`;
+  $('res-cert').innerHTML = `<b>${ct}</b><span>${cs}</span><br/><span>${r.mode === 'coupling' ? (info.demo && recording?.source === 'simulated' ? 'From beat-by-beat pulse timing (simulated pressure waveform).' : 'From beat-by-beat pulse timing (SDK pressure waveform).') : 'Breathing only: pulse data was not reliable or not available.'}</span>`;
   $('chart-measured').innerHTML = measuredChart(r);
   $('chart-felt').innerHTML = feltChart(r);
   const rows = p.stageResults.map((s) => stageRow(s, r.bestPace));
