@@ -11,6 +11,13 @@ const { SmartSpectraSDK, breathingMetrics, cardioMetrics, faceMetrics, edaMetric
 
 declare global { interface Window { paceprint: any } }
 
+/** SmartSpectraErrorCode names (node-sdk 3.5 index.d.ts), for the log only */
+const SDK_ERROR_NAMES: Record<number, string> = {
+  1: 'InvalidState', 2: 'AuthenticationFailed', 3: 'ConfigurationFailed', 4: 'CreditExhausted', 5: 'NetworkError',
+  6: 'ServerError', 7: 'InputUnavailable', 8: 'ProcessingFailed', 9: 'FrameConversionFailed', 10: 'NonMonotonicTimestamp',
+  11: 'TimestampGap', 13: 'MetricNotAuthorized', 14: 'SustainedLowFrameRate',
+};
+
 export class CameraSource implements CaptureSource {
   readonly kind = 'camera' as const;
   private sdk: any = null;
@@ -46,9 +53,15 @@ export class CameraSource implements CaptureSource {
     const sdk = new SmartSpectraSDK({ apiKey: key, requestedMetrics: metrics, enableTelemetry: false });
     this.sdk = sdk;
     sdk.on('streamAvailable', (s: MediaStream) => this.onStream(s));
-    sdk.on('processingStatus', (status: number) => listener({ type: 'status', t: t(), status }));
+    let lastStatus: number | null = null;
+    sdk.on('processingStatus', (status: number) => {
+      if (status !== lastStatus) { this.onLog(`SDK processing status ${status}`); lastStatus = status; }
+      listener({ type: 'status', t: t(), status });
+    });
     sdk.on('validationStatus', (code: number, _ts: number, hint: string) => listener({ type: 'validation', t: t(), code, hint }));
     sdk.on('error', (code: number, message: string, retryable: boolean) => {
+      // every SDK error reaches the terminal log (the message never contains the key)
+      this.onLog(`SDK error ${code} (${SDK_ERROR_NAMES[code] ?? 'unknown'}): ${message} [retryable=${retryable}]`);
       // 13 = kMetricNotAuthorized, 3 = kConfigurationFailed: the key may not be provisioned for
       // cardio. Fall back once to breathing + face (Plan C scoring), instead of failing.
       const askedCardio = metrics.some((m) => cardioMetrics.includes(m));

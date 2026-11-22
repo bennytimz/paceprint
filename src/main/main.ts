@@ -24,6 +24,9 @@ function createWindow() {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      // keep camera frames and timers at full rate when the window is behind another one: a throttled
+      // window can starve the SDK of frames and end the session (low frame rate / timestamp gap)
+      backgroundThrottling: false,
     },
   });
   win.webContents.setWindowOpenHandler(({ url }) => {

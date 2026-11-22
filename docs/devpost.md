@@ -84,7 +84,7 @@ if (t - this.lastPacketT > VALIDITY.lostAfter) {
 }
 ```
 
-**Testing.** `npm test` runs 84 tests: a full simulated sweep that must find the right pace, refusal windows that must be excluded, a talking flag that fires on its own and must refuse nothing and change no ranking (only the audit line), a lens covered during settle that must never turn into a time to lock, nothing scored before the pulse waveform arrives (it took 36 s in the live check) and no gap in it ever filled in, the breathing-only fallback, a "no clear result" day, timestamp handling, the local store's delete-everything, and a replay of the bundled Judge Mode session. `npm run verify-sdk` checks every signal live on a real key:
+**Testing.** `npm test` runs 92 tests: a full simulated sweep that must find the right pace, refusal windows that must be excluded, a talking flag that fires on its own and must refuse nothing and change no ranking (only the audit line), a lens covered during settle that must never turn into a time to lock, a dead SDK session that must always end on an explained screen, nothing scored before the pulse waveform arrives (it took 36 s in the live check) and no gap in it ever filled in, the breathing-only fallback, a "no clear result" day, timestamp handling, the local store's delete-everything, and a replay of the bundled Judge Mode session. `npm run verify-sdk` checks every signal live on a real key:
 
 ```
 === Signals ===

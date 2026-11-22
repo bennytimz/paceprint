@@ -7,6 +7,7 @@ import { ReplaySource } from '../core/capture';
 import { Protocol, PhaseName } from '../core/protocol';
 import { Pacer } from '../core/pacer';
 import { Recorder, parseRecording } from '../core/recorder';
+import { SessionHealth, DeadSession, deadSessionScreen } from '../core/session-health';
 import { detectBeats, heartRateSeries, coupling, ANALYSIS, StageResult, guidedPace, SweepResult } from '../core/analysis';
 import { resample, bandpass } from '../core/dsp';
 import { validationMessage } from '../core/validation-codes';
@@ -64,6 +65,25 @@ function clock(): number {
 }
 
 function fmt(v: number | undefined, d = 0) { return v === undefined || !Number.isFinite(v) ? '—' : v.toFixed(d); }
+
+// ------------------------------------------------------------------ dead SDK session
+const health = new SessionHealth();
+const wallS = () => performance.now() / 1000;
+
+/** A session-ending SDK error or a silent SDK: camera off, explained on screen, with a way on. */
+async function endDeadSession(d: DeadSession) {
+  if (!running && !pendingGuided) return;
+  running = false;
+  $('btn-stop').hidden = true;
+  $('rate').hidden = true;
+  console.warn(`[camera] session ended: ${d.title}${d.code !== null ? ` (SDK error ${d.code})` : ' (no data from the SDK)'}`);
+  await stopSource();
+  pendingGuided = false;
+  await saveStreamNow();
+  const s = deadSessionScreen(d, !!protocol?.result);
+  const act = s.action === 'retry' ? () => startSession() : s.action === 'result' ? () => showResult() : () => show('scr-consent');
+  message(s.eyebrow, s.title, s.text, s.button, act);
+}
 
 function message(eyebrow: string, title: string, text: string, btn = 'Start again', action: () => void = () => startSession()) {
   $('msg-eyebrow').textContent = eyebrow;
@@ -148,6 +168,7 @@ async function startSession() {
   const cam = new CameraSource((stream) => attachStream(stream), (m) => console.warn('[camera]', m));
   source = cam;
   $('setup-msg').textContent = 'Starting the camera…';
+  health.start(wallS());
   try {
     await cam.start(onEvent);
     $('setup-msg').textContent = 'Everything must be green for a few seconds.';
@@ -174,6 +195,7 @@ function attachStream(stream: MediaStream) {
 async function stopSource() {
   const s = source;
   source = null;
+  health.stop();
   if (s) { try { await s.stop(); } catch { /* ignore */ } }
   for (const id of ['preview', 'preview-mini']) {
     const v = $(id) as HTMLVideoElement;
@@ -208,15 +230,17 @@ function onEvent(e: StreamEvent) {
   protocol.ingest(e);
   if (e.type === 'packet') {
     lastPacketT = e.p.t; lastPacketWall = performance.now();
+    if (!info.demo) health.packet(wallS());
     if (e.p.pulseRate) latest.pulse = e.p.pulseRate;
     if (e.p.breathRate) latest.breath = e.p.breathRate;
     if (e.p.hrv) latest.hrv = e.p.hrv;
   } else if (e.type === 'validation') {
     latest.code = e.code; latest.codeT = e.t;
   } else if (e.type === 'error' && !info.demo) {
-    if (e.code === 4) stopAll('Your SmartSpectra trial credits have run out.');
-    else if (e.code === 2) { stopAll('The API key was rejected.'); }
-    else if (!e.retryable) stopAll(`The SDK reported an error: ${e.message}`);
+    // any SDK error ends the session (terminal state), retryable or not: explain it on screen
+    health.error(e.code, e.message, e.retryable);
+    const d = health.check(wallS());
+    if (d) void endDeadSession(d);
   }
 }
 
@@ -235,6 +259,7 @@ for (const b of document.querySelectorAll<HTMLButtonElement>('.speed button')) {
 let lastHeavy = 0;
 function loop(now: number) {
   requestAnimationFrame(loop);
+  if (!info.demo && (running || pendingGuided)) { const d = health.check(wallS()); if (d) void endDeadSession(d); }
   if (!protocol) return;
   const t = clock();
   protocol.tick(t);
@@ -779,6 +804,7 @@ async function startGuidedLive() {
   running = true;
   $('btn-stop').hidden = false;
   pendingGuided = true;
+  health.start(wallS());
   try {
     await cam.start(onEvent);
   } catch (e: any) {
