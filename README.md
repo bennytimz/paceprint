@@ -132,7 +132,7 @@ src/core/        no Electron imports; runs in the app, in Node scripts, and in t
   recorder.ts      metric-stream recordings (numbers only, never video)
 src/main/        Electron main: window, local store; live-sdk.ts runs the SDK with its own camera capture (after consent)
 src/renderer/    UI; camera-source.ts receives the SDK's events; the window never opens the camera
-scripts/         verify-sdk (judge-runnable), make-fixture, net-audit.md
+scripts/         verify-sdk (judge-runnable), make-fixture, net-audit.md, capture-judge + assemble-raw-cut + make-video (demo video)
 ```
 The SDK is loaded only when you start a live session, so Judge Mode never loads it. In a live session the SDK captures the camera itself in the main process (the same path as `verify-sdk`), so there is only one capture path and the API key never reaches the window. The preview shows the SDK's own frames, drawn on screen only and never stored or sent; if the SDK provides none, the screen shows the pacer and checks without your face.
 
@@ -141,7 +141,7 @@ The full notice is `docs/consent-and-data-handling.md`. The app shows **this sam
 
 - The camera starts only after you accept. "Camera live" shows whenever it is on. **Stop** (or Esc) turns it off at once.
 - **No video or frames are stored or sent by Paceprint.** Only session summaries (paces, scores, ease ratings, times) are saved, locally, until you delete them. Optional "save session data" (signal numbers only) is off by default.
-- **One-click delete everything**, plus per-session delete.
+- **One-click delete everything**, plus per-session delete. (Switched off in Judge Mode, which lists this computer's real sessions but never deletes them.)
 - No accounts, cloud, analytics, or AI services. The SDK's LLM insights feature is not used.
 - **Measured network use** (`scripts/net-audit.md`): the SDK makes one encrypted connection, to `cont-api.physiology.presagetech.com`, to check the key, count usage, and download its models (~21 MB). Upload volume is far below what video would need. Paceprint sets `enableTelemetry: false`. We cannot read the encrypted content, so we don't claim "nothing leaves your device".
 - 18+. Wellness only.

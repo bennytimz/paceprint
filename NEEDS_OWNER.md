@@ -1,3 +1,5 @@
+> **Superseded by [`FINISH.md`](FINISH.md) (Sun Nov 22): the only steps left are there.** The notes below are history.
+
 # NEEDS_OWNER — tasks only Benny can do
 
 Times are Lagos (WAT). Claude keeps building against replay/simulated data meanwhile and never turns on

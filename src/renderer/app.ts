@@ -669,8 +669,11 @@ async function refreshData() {
   ($('set-sound') as HTMLInputElement).checked = settings.sound;
   ($('set-random') as HTMLInputElement).checked = settings.randomizeOrder;
   const sessions: any[] = await api.sessions();
-  $('session-list').innerHTML = sessions.length ? sessions.map((s) => `<li><span>${new Date(s.createdAt).toLocaleString()} · ${s.bestPace ? `best ≈ ${s.bestPace}/min (${s.certainty})` : 'no clear result'}</span><button class="danger" data-del="${escapeHtml(String(s.id))}">Delete</button></li>`).join('') : '<li class="muted">No saved sessions.</li>';
+  $('session-list').innerHTML = sessions.length ? sessions.map((s) => `<li><span>${new Date(s.createdAt).toLocaleString()} · ${s.bestPace ? `best ≈ ${s.bestPace}/min (${s.certainty})` : 'no clear result'}</span><button class="danger" data-del="${escapeHtml(String(s.id))}"${info.demo ? ' disabled title="Deleting is off in Judge Mode"' : ''}>Delete</button></li>`).join('') : '<li class="muted">No saved sessions.</li>';
   for (const b of $('session-list').querySelectorAll<HTMLButtonElement>('[data-del]')) b.addEventListener('click', async () => { await api.deleteSession(b.dataset.del); refreshData(); });
+  // Judge Mode never deletes (main refuses too): these are the real sessions on this computer
+  ($('btn-delete-all') as HTMLButtonElement).disabled = info.demo;
+  if (info.demo) $('delete-msg').textContent = 'Deleting is off in Judge Mode, so your real saved sessions are safe. Use npm start to delete.';
 }
 $('btn-data').addEventListener('click', () => { const d = $('panel-data'); d.hidden = !d.hidden; if (!d.hidden) { refreshData(); d.focus(); } });
 $('btn-close-data').addEventListener('click', () => { $('panel-data').hidden = true; });

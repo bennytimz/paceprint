@@ -205,3 +205,24 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 
 ## Blockers / risks
 - Live path (SDK native capture in main, src/main/live-sdk.ts) untested with a person in frame.
+
+## Sun Nov 22: finish pass (no owner recordings)
+- Judge Mode can't delete anything. The main process ignores both delete calls when `--demo` is on. The drawer
+  disables the buttons and says why, and the README says so.
+- The video was built unattended with no camera and no credits:
+  - `scripts/capture-judge.mjs` runs Judge Mode, and the app records its own window (`src/main/dev-capture.ts`,
+    dev-only, active only in `--demo` with `PACEPRINT_CAPTURE`).
+  - A page marker finds the "Paused: Moving" card, so scene 5 always starts 2.5 s before it.
+  - The code screens are generated, and `--code-only` rebuilds them on their own.
+  - `assemble-raw-cut.py` builds the 170.8 s cut, and `make-video.py` adds the Jenny voice-over and 32 subtitle cues
+    with no timing warnings.
+  - Scene 7 uses the real result screenshots and the card. Every other scene is the simulated session with its banner,
+    and the post says so under the video.
+- Demo script: the footage note, scenes 8 to 10 and the production steps match the built video. Scene 10 says
+  "in the live app one click deletes it".
+- Final secret scan, on the working tree and all of history: no API key, no local user path, no email, no
+  attribution trailers. Every commit is by Bennytimz (noreply). No recordings, video or `.env` are tracked; the only
+  fixture is `tests/fixtures/judge-simulated.json`.
+- Pre-public checklist: the README sections, consent doc, post headings, tag and category are all present. 126 tests
+  pass, and typecheck and build are clean.
+- What's left is in FINISH.md: make the repo public, upload the video, fill 2 post lines, publish, delete the backup bundle.

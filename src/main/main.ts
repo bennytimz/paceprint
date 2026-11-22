@@ -9,6 +9,10 @@ import type { LiveSdk } from './live-sdk';
 const DEMO = process.argv.includes('--demo');
 const ROOT = app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '..', '..');
 const NET_AUDIT = process.env.PACEPRINT_NET_AUDIT === '1';
+/** dev-only: timed frame capture of Judge Mode for the demo video (src/main/dev-capture.ts) */
+const CAPTURE = DEMO ? process.env.PACEPRINT_CAPTURE : undefined;
+// keep painting when the window is covered, so an unattended capture still gets every frame
+if (CAPTURE) app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 let store: Store;
 let win: BrowserWindow | null = null;
 let consentGiven = false;
@@ -55,6 +59,11 @@ function createWindow() {
         if (i === times.length - 1) app.quit();
       }, s * 1000));
     });
+  }
+  if (CAPTURE) {
+    const plan = CAPTURE;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    win.webContents.once('did-finish-load', () => (require('./dev-capture') as typeof import('./dev-capture')).runCapture(win!, plan, () => app.quit()));
   }
   win.webContents.on('console-message', (_e, level, message) => {
     if (level >= 2 || process.env.PACEPRINT_DEVTOOLS === '1') console.log(`[renderer] ${message}`);
@@ -118,10 +127,11 @@ app.whenReady().then(() => {
   ipcMain.handle('store:saveSettings', (_e, s) => (DEMO ? { ...store.settings(), ...(demoSettings = { ...demoSettings, ...s }) } : store.saveSettings(s)));
   ipcMain.handle('store:sessions', () => store.listSessions());
   ipcMain.handle('store:saveSession', (_e, s) => (DEMO ? 'demo-not-saved' : store.saveSession(s)));
-  ipcMain.handle('store:deleteSession', (_e, id: string) => store.deleteSession(id));
+  // Judge Mode never deletes: the drawer lists this computer's real live sessions (and the button looks live in demo videos)
+  ipcMain.handle('store:deleteSession', (_e, id: string) => { if (!DEMO) store.deleteSession(id); });
   // written only if the person opted in (Save session data); returns the file, or null if not saved
   ipcMain.handle('store:saveStream', (_e, id: string, text: string) => (!DEMO && store.settings().saveStreams ? store.saveStream(id, text) : null));
-  ipcMain.handle('store:deleteAll', () => { store.deleteAll(); return store.summary(); });
+  ipcMain.handle('store:deleteAll', () => { if (!DEMO) store.deleteAll(); return store.summary(); });
   ipcMain.handle('store:summary', () => store.summary());
   ipcMain.handle('app:openDataFolder', () => { fs.mkdirSync(store.dir, { recursive: true }); return shell.openPath(store.dir); });
 

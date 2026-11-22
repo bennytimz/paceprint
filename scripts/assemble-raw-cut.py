@@ -1,4 +1,6 @@
-"""Builds the silent raw cut of the demo video, timed to docs/demo-script.md, from your recordings.
+"""Builds the silent raw cut of the demo video, timed to docs/demo-script.md.
+
+  node scripts/capture-judge.mjs                # first: records Judge Mode, writes judge.mp4, code.mp4, cuts.txt
 
   python scripts/assemble-raw-cut.py            # -> video-raw/raw-cut.mp4
   python scripts/make-video.py --video video-raw/raw-cut.mp4   # then: narration + subtitles + export
