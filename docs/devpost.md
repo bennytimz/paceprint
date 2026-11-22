@@ -21,9 +21,11 @@ It's a wellness tool for self-awareness, not a medical device.
 ## Demo
 ⟦PLACEHOLDER: video link (voice-over + subtitles)⟧
 
-⟦PLACEHOLDER: GIF from the real recorded session⟧
+![Paceprint in Judge Mode with the simulated session: the measuring timer pauses when the signal weakens, the refused stretch is shaded, then the result](https://raw.githubusercontent.com/Bennytimz/paceprint/main/docs/media/paceprint-judge-mode.gif)
 
-Try it without a camera or key (Judge Mode replays a bundled session, clearly labelled as simulated or recorded). Needs Node 22.12+ and git; `npm install` downloads about 350 MB (mostly the SDK runtime):
+*Judge Mode, **simulated** session (a modelled person, labelled as such in the app). Not a live recording.*
+
+Try it without a camera or key: Judge Mode replays a bundled **simulated** session through the real app and analysis code, labelled as simulated on screen. Needs Node 22.12+ and git; `npm install` downloads about 350 MB (mostly the SDK runtime):
 
 ```bash
 git clone https://github.com/Bennytimz/paceprint.git
@@ -31,6 +33,28 @@ cd paceprint
 npm install
 npm run demo
 ```
+
+## A Real Session
+I ran one full live sweep on my laptop (Windows 11, built-in webcam). The SDK captured at 30 frames per second for the whole session, about 17 minutes, with no SDK errors. This is the share card the app made at the end:
+
+![Share card from the live session: about 6/min, weak peak](https://raw.githubusercontent.com/Bennytimz/paceprint/main/paceprint-card-2026-11-22.png)
+
+| Pace | Heart-rhythm swing | Coupling (PLV) | Felt (1 hard – 5 easy) | Status |
+|---|---|---|---|---|
+| Baseline (normal breathing) | — | — | — | Not read: trustworthy data came only in short fragments |
+| 7.0/min | — | — | 2 | Not read: trustworthy data came only in short fragments |
+| 6.5/min | 3.5 bpm | 0.05 | 1 | Trusted |
+| 6.0/min | 8.4 bpm | 0.07 | 3 | Trusted |
+| 5.5/min | 4.1 bpm | 0.77 | 3 | Trusted |
+| 5.0/min | 3.7 bpm | 0.61 | 3 | Trusted |
+
+**The result: about 6 breaths a minute, weak peak.** The weak label is the app doing its job, because the two measures disagree. My heart rate swung most at 6.0/min (8.4 bpm, against 3.5 to 4.1 at the other paces), but at that pace the swing didn't keep steady timing with my breathing (coupling 0.07). At 5.5/min it did (0.77). A "clear" peak needs four things: it stands out from the paces either side, the three 30-second parts of the measurement agree, at least four paces were read, and coupling at the peak is at least 0.5. This session met the first three and failed the last, so Paceprint called it weak and said why. It still names 6.0/min because the ranking weights swing more than coupling.
+
+One possible reason, which I haven't tested: heart rate also rises and falls on its own about six times a minute (a blood-pressure rhythm often called the Mayer wave), so a big swing at exactly 6/min need not come from breathing. This data can't tell the two apart.
+
+Felt ease didn't separate the paces either: 6.0, 5.5 and 5.0 all felt "OK" (3 of 5). The card's "Felt easiest 6.0/min" is the first of that three-way tie. Seven breaths a minute and my baseline were not read: the trusted data came only in short fragments, so Paceprint left them out instead of guessing.
+
+**What's real and what isn't.** The result screen and the card are from this live session. The session's raw signal stream wasn't saved ("Save session data" was off when I started), so it can't be replayed, and Judge Mode plays a simulated session instead. The app now says on the setup screen whether saving is on, and keeps the stream in memory until you leave the result so it can still be saved. The real-signal check anyone can run is `npm run verify-sdk` (output below).
 
 ## Code
 https://github.com/Bennytimz/paceprint (MIT)

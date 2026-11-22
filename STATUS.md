@@ -180,6 +180,14 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Setup screen says whether saving is on; result, Stop and dead-session screens say "Recording saved: <file>" or that it was not saved (Stop used to say "Nothing from this session was saved." even when the stream was). Terminal logs the file. 126 tests pass. Setup line not seen on screen yet (Judge Mode skips setup).
 - Reopening the saved summary as a read-only result: possible only in reduced form (see owner answer); not built.
 
+## Docs match the real result (Sun Nov 22, ~11:20)
+- Owner: keep the share card (paceprint-card-2026-11-22.png, pushed in 24516f9), no history rewrite; no reopen screen, no per-part saving; no second live run unless Presage tops up credits.
+- README "A real session" section, post "A Real Session" section with the card, demo script scene 7 = real result: about 6/min, weak; swing 8.4 at 6.0 vs 3.5-4.1; PLV 0.07 at 6.0, 0.77 at 5.5; 7.0 and baseline not read. Weak = coupling at the peak below 0.5 (the other three clear checks passed). Mayer wave stated as a possible reason only.
+- Judge Mode stated as simulated everywhere; raw stream of the live session not saved; result screen and card are real. Post GIF placeholder replaced by the simulated Judge Mode GIF, captioned. Card's "Felt easiest 6.0" noted as first of a three-way tie (6.0/5.5/5.0 all 3).
+- Demo script: scenes 2-6 and 8 from Judge Mode (banner visible), scene 7 the real result capture and card; retimed (scene 7 1:45-2:22); output paths fixed (backslashes had been eaten). FALLBACK.private.md no longer needed (in-app live works).
+- README time estimate: measured ~17 min consent to result added next to the "~11 min" estimate. The in-app Start button still says "~11 min to your result" (not changed).
+- Open: cover image URL (post front matter), video link.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).

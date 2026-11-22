@@ -15,6 +15,32 @@ It is a wellness tool for self-awareness. **Not a medical device**, not for diag
 ## Who it's for
 A student in exam week who has tried a breathing app and wondered whether the pace it prescribes is right for them. Paceprint answers with their own data, and says so plainly when the data isn't good enough.
 
+## A real session
+One full live sweep, one person, on our test laptop (Windows 11, built-in webcam), Nov 22 2026. The SDK captured at 30 frames per second for the whole session (about 17 minutes) with no SDK errors.
+
+| Pace | Heart-rhythm swing | Coupling (PLV) | Felt (1 hard – 5 easy) | Status |
+|---|---|---|---|---|
+| Baseline (normal breathing) | — | — | — | Not read: trustworthy data came only in short fragments |
+| 7.0/min | — | — | 2 | Not read: trustworthy data came only in short fragments |
+| 6.5/min | 3.5 bpm | 0.05 | 1 | Trusted |
+| 6.0/min | 8.4 bpm | 0.07 | 3 | Trusted |
+| 5.5/min | 4.1 bpm | 0.77 | 3 | Trusted |
+| 5.0/min | 3.7 bpm | 0.61 | 3 | Trusted |
+
+**Result: about 6 breaths a minute, weak peak.**
+
+**Why weak.** The two measures disagree.
+- **Swing** (how far heart rate rises and falls at the pace's rhythm) was highest at 6.0/min: 8.4 bpm, against 3.5 to 4.1 bpm at the other paces.
+- **Coupling** (PLV: whether that rise and fall keeps steady timing with the measured belly breathing, 0 = no steady timing, 1 = fully in step) was 0.07 at 6.0/min, and highest at 5.5/min (0.77).
+
+A "clear" label needs four things: the peak stands out from the paces either side, the three 30-second parts of the measurement point to the same pace, at least four paces were read, and coupling at the peak is at least 0.5. This session met the first three and failed the fourth, so the label is "weak". The named pace is still 6.0/min because the ranking weights swing more than coupling (0.5 vs 0.3).
+
+**One possible reason, not tested:** heart rate also rises and falls on its own about six times a minute, with a blood-pressure rhythm often called the Mayer wave. So a large swing at exactly 6/min need not come from breathing. This data cannot tell the two apart.
+
+Felt ease did not separate the paces either: 6.0, 5.5 and 5.0/min were all rated 3 ("OK"). The share card's "Felt easiest 6.0/min" is the first of that three-way tie.
+
+**What is real here.** The result screen and the share card ([`paceprint-card-2026-11-22.png`](paceprint-card-2026-11-22.png)) are from this live session. Its signal stream was not saved ("Save session data" was off when the session started), so this session cannot be replayed. Judge Mode plays a **simulated** session, not this one. The app now shows on the setup screen whether saving is on, and keeps the stream in memory until you leave the result, so it can still be saved.
+
 ## Try it
 
 Requirements for both modes: **Node 22** (22.12 or newer; check with `node -v`) and git. Clean-clone install and Judge Mode checked on Windows 11 with Node 22.
@@ -38,7 +64,7 @@ copy .env.example .env          # macOS/Linux: cp .env.example .env
 # edit .env: SMARTSPECTRA_API_KEY=your_key
 npm start
 ```
-Sit about an arm's length from the camera, laptop on a table, even light from the front, chest in view. **Estimated camera time: ~16 min** (about 11 min to your result, then an optional 5-minute guided session). The camera switches off while you read your result, so no SDK time is spent there.
+Sit about an arm's length from the camera, laptop on a table, even light from the front, chest in view. **Estimated camera time: ~16 min** (about 11 min to your result, then an optional 5-minute guided session). The camera switches off while you read your result, so no SDK time is spent there. Refused stretches pause the timer, so it can run longer: our one full live session took about 17 minutes from consent to result.
 
 ### Check the SDK on your machine
 ```bash
@@ -122,7 +148,8 @@ The full notice is `docs/consent-and-data-handling.md`. The app shows **this sam
 
 ## Limitations
 - Camera readings can be less reliable with movement, talking, poor or flickering light, dark or striped clothing, and glasses glare, and may perform differently across skin tones. Paceprint refuses data it can measure as bad (motion, framing, light, weak or missing pulse). It cannot reliably detect talking, so it asks you to stay silent, warns you, and marks caveated paces. It can still be wrong.
-- The method is validated on synthetic and simulated signals (`docs/analysis.md`); real-person testing is limited.
+- The method is validated on synthetic and simulated signals (`docs/analysis.md`). Real-person testing is one full live sweep by one person (see [A real session](#a-real-session)), plus short SDK checks.
+- At 6 breaths a minute, a large heart-rate swing may come partly from the body's own blood-pressure rhythm rather than breathing. Paceprint does not separate the two; it only requires steady timing with breathing (coupling) before it calls a peak clear.
 - Results are relative to you on that day. No population norms. Not a clinical assessment.
 - SDK use needs network access and API credits (no offline mode).
 
