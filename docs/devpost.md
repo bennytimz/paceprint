@@ -21,7 +21,7 @@ It's a wellness tool for self-awareness, not a medical device.
 ## Demo
 ⟦PLACEHOLDER: video link (voice-over + subtitles)⟧
 
-*In the video, the sweep, refusal, rating, guided-session and data-drawer footage is Judge Mode playing the **simulated** session (the banner says so on screen). The result screens and the card are from my real live session.*
+*In the video, the setup check and the start of a baseline (labelled **LIVE** on screen) are recorded on my own webcam: the real SmartSpectra signal, including a real pause when my pulse signal weakened. The sweep, the "Moving" refusal, the rating, the guided session and the data drawer are Judge Mode playing the **simulated** session (the banner says so on screen). The result screens and the card are from my real live session.*
 
 ![Paceprint in Judge Mode with the simulated session: the measuring timer pauses when the signal weakens, the refused stretch is shaded, then the result](https://raw.githubusercontent.com/Bennytimz/paceprint/main/docs/media/paceprint-judge-mode.gif)
 

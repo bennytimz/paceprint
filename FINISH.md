@@ -1,6 +1,6 @@
 # FINISH: what's left for you (6 steps)
 
-Everything else is done and pushed: the video is built (`video-out/paceprint-demo.mp4`, 2:51, 1080p, voice-over
+Everything else is done and pushed: the video is built (`video-out/paceprint-demo.mp4`, 3:11, 1080p, voice-over
 and burned-in subtitles), the post is filled in, Judge Mode can't delete anything, and the final secret scan passed.
 
 1. **Make the repo public** (the post's images load from GitHub, so do this first): GitHub → paceprint → Settings →

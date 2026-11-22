@@ -6,6 +6,7 @@
   python scripts/make-video.py --video video-raw/raw-cut.mp4   # then: narration + subtitles + export
 
 Inputs (video-raw/ is gitignored; the stills are in the repo):
+  video-raw/live-setup.mp4     live setup screen on the owner's webcam (scripts/capture-live.mjs): scene 3 (else judge.mp4)
   video-raw/judge.mp4          Judge Mode screen recording ("Simulated session" banner): scenes 2-6, 10 (and 8 if no live clip)
   video-raw/guided-live.mp4    your live guided-session clip: scene 8 (optional; falls back to judge.mp4)
   video-raw/code.mp4           VS Code clip: scene 9 (optional; falls back to a text card)
@@ -31,6 +32,11 @@ STILLS = [
     (ROOT / 'paceprint-card-2026-11-22.png', None, 'zoom'),        # the share card
 ]
 END_CARD_S = 4  # last seconds of scene 10
+#: scene 3, live: two parts of video-raw/live-setup.mp4 (scripts/capture-live.mjs). Starts can be overridden in
+#: cuts.txt as `live <t>` and `live2 <t>`. Part 2 is LIVE2_S long; part 1 takes the rest of the scene.
+LIVE_DEFAULTS = {'live': 3.5, 'live2': 59.0}
+LIVE2_S = 22.5
+LIVE_LABELS = ('LIVE  ·  recorded on my webcam, real SmartSpectra signal', 'LIVE  ·  baseline started, real signal')
 
 CUTS_TEMPLATE = """# Where each scene starts inside its recording (m:ss). Watch the recording, note the time, fill in.
 # scene  start
@@ -75,6 +81,16 @@ def clip(src: Path, start: float, dur: float, out: Path):
          '-vf', f'{FIT},fps={FPS},tpad=stop_mode=clone:stop_duration={dur:.3f}', '-t', f'{dur:.3f}', *ENC, str(out)])
 
 
+def live_clip(src: Path, start: float, dur: float, label: str, out: Path, work: Path):
+    """A live part with a label in the middle of the app's top bar, so it can't be mistaken for the simulated scenes."""
+    tf = work / f'{out.stem}-label.txt'
+    tf.write_text(label, encoding='utf-8')
+    draw = (f"drawtext=fontfile='{FONT}':textfile='{tf.name}':fontcolor=0xffffff:fontsize=28:"
+            f"box=1:boxcolor=0xc0392b@0.92:boxborderw=12:x=(w-text_w)/2:y=14")
+    run(['-ss', f'{start:.3f}', '-i', str(src), '-t', f'{dur:.3f}',
+         '-vf', f'{FIT},fps={FPS},{draw},tpad=stop_mode=clone:stop_duration={dur:.3f}', '-t', f'{dur:.3f}', *ENC, out.name], cwd=work)
+
+
 def still(img: Path, dur: float, motion: str, out: Path):
     """A still with a slow 6 % zoom in ('zoom') or, at 8 % zoom, a slow pan from top to bottom ('pan'). Gentle, so table edges stay in frame."""
     n = round(dur * FPS)
@@ -108,7 +124,7 @@ def read_cuts(path: Path, mmss):
         line = line.split('#')[0].strip()
         if line:
             n, t = line.split()[:2]
-            cuts[int(n)] = mmss(t)
+            cuts[int(n) if n.isdigit() else n] = mmss(t)
     return cuts
 
 
@@ -125,7 +141,7 @@ def main():
         sys.exit(f'Expected scenes 1-10 in docs/demo-script.md, found {sorted(rows)}')
     cuts = read_cuts(raw / 'cuts.txt', mmss)
 
-    judge, guided, code = raw / 'judge.mp4', raw / 'guided-live.mp4', raw / 'code.mp4'
+    judge, guided, code, live = raw / 'judge.mp4', raw / 'guided-live.mp4', raw / 'code.mp4', raw / 'live-setup.mp4'
     missing = [str(p) for p in [judge, *[s[0] for s in STILLS]] if not p.exists()]
     if missing:
         sys.exit('Missing:\n  ' + '\n  '.join(missing))
@@ -146,6 +162,13 @@ def main():
         card([('Paceprint', 120, '0xebe6dc'), ('Is six breaths a minute your pace?', 54, '0x74c7b4')], dur[1], seg('s1'), work)
         print(f' 1     {dur[1]:5.1f}s  title card')
         for n in (2, 3, 4, 5, 6):
+            if n == 3 and live.exists():
+                a, b = cuts.get('live', LIVE_DEFAULTS['live']), cuts.get('live2', LIVE_DEFAULTS['live2'])
+                live_clip(live, a, dur[3] - LIVE2_S, LIVE_LABELS[0], seg('s3a'), work)
+                live_clip(live, b, LIVE2_S, LIVE_LABELS[1], seg('s3b'), work)
+                print(f' 3     {dur[3] - LIVE2_S:5.1f}s  live-setup.mp4 from {a:.1f}s (LIVE)')
+                print(f' 3     {LIVE2_S:5.1f}s  live-setup.mp4 from {b:.1f}s (LIVE)')
+                continue
             clip(judge, cuts[n], dur[n], seg(f's{n}'))
             print(f' {n}     {dur[n]:5.1f}s  judge.mp4 from {cuts[n]:.1f}s')
         left = dur[7]

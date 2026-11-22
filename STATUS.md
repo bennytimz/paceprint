@@ -226,3 +226,15 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Pre-public checklist: the README sections, consent doc, post headings, tag and category are all present. 126 tests
   pass, and typecheck and build are clean.
 - What's left is in FINISH.md: make the repo public, upload the video, fill 2 post lines, publish, delete the backup bundle.
+
+## Sun Nov 22, later: live scene in the video
+- The owner asked for the video to show live signals, so scene 3 is now live. `scripts/capture-live.mjs` recorded
+  150 s of the live app with ffmpeg screen capture (gdigrab) of the maximized window. Nothing went through the app.
+- The video uses two parts of that recording:
+  - 3.5–26 s: the checklist goes from red "waiting" to green, and the four warm-up bars fill.
+  - 59–81.5 s: the live baseline with real traces, a real "Paused: Weak pulse signal", and the timer resuming.
+- The "Your data" drawer, open from 39 to 47 s, is left out because it shows the Windows data path with the username.
+- No session or stream was saved: the window closed during the baseline.
+- Credits: 32 → 27.
+- The video is now 3:11 (scene 3 is 45 s and the sweep is 30 s), with no timing warnings. A red "LIVE" label sits in
+  the top bar for the whole live scene. The card and cover are unchanged and show no face.
