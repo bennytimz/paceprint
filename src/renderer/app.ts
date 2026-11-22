@@ -84,7 +84,7 @@ async function endDeadSession(d: DeadSession) {
   await saveStreamNow();
   const s = deadSessionScreen(d, !!protocol?.result);
   const act = s.action === 'retry' ? () => startSession() : s.action === 'result' ? () => showResult() : () => show('scr-consent');
-  message(s.eyebrow, s.title, s.text, s.button, act);
+  message(s.eyebrow, s.title, `${s.text}${streamSavedTo ? ` ${savedNote()}` : ''}`, s.button, act);
 }
 
 function message(eyebrow: string, title: string, text: string, btn = 'Start again', action: () => void = () => startSession()) {
@@ -166,7 +166,11 @@ async function startSession() {
   }
 
   replay = null;
-  recorder = settings.saveStreams ? new Recorder('camera') : null;
+  // kept in memory for every live session; written to disk only if Save session data is on (saveStreamNow),
+  // so turning it on at any point up to the result still saves the whole session
+  recorder = new Recorder('camera');
+  streamSavedTo = null;
+  renderSaveState();
   const cam = new CameraSource(preview, (m) => console.warn('[camera]', m));
   source = cam;
   $('setup-msg').textContent = 'Starting the camera…';
@@ -218,7 +222,7 @@ async function stopAll(reason = 'Stopped by you.') {
   pendingGuided = false;
   await saveStreamNow();
   if (protocol?.result) { show('scr-result'); return; }
-  message('Stopped', 'Camera is off.', `${reason} Nothing from this session was saved.`);
+  message('Stopped', 'Camera is off.', `${reason} ${streamSavedTo ? `No result was saved. ${savedNote()}` : 'Nothing from this session was saved.'}`);
 }
 $('btn-stop').addEventListener('click', () => stopAll());
 document.addEventListener('keydown', (e) => {
@@ -685,7 +689,12 @@ async function setSetting(k: keyof typeof settings, v: boolean) {
   settings = await api.saveSettings({ [k]: v });
   document.body.classList.toggle('reduced-motion', settings.reducedMotion);
 }
-$('set-streams').addEventListener('change', (e) => setSetting('saveStreams', (e.target as HTMLInputElement).checked));
+$('set-streams').addEventListener('change', async (e) => {
+  await setSetting('saveStreams', (e.target as HTMLInputElement).checked);
+  // switched on after the result: save the session now (it is saved at the result otherwise)
+  if (settings.saveStreams && protocol?.result) await saveStreamNow();
+  renderSaveState();
+});
 $('set-motion').addEventListener('change', (e) => setSetting('reducedMotion', (e.target as HTMLInputElement).checked));
 $('set-sound').addEventListener('change', (e) => setSetting('sound', (e.target as HTMLInputElement).checked));
 $('set-random').addEventListener('change', (e) => setSetting('randomizeOrder', (e.target as HTMLInputElement).checked));
@@ -818,8 +827,40 @@ async function startGuidedLive() {
   b.disabled = false;
 }
 
-/** Save the metric stream (if the person opted in). Called at the result, at the end, and on Stop. */
+/** file the current session's metric stream was saved to (null = not saved yet) */
+let streamSavedTo: string | null = null;
+
+/** Save the metric stream (if the person opted in). Called at the result, at the end, on Stop, and when
+ *  Save session data is switched on after the result. */
 async function saveStreamNow() {
-  if (info.demo || !recorder || !settings.saveStreams || !sessionId) return;
-  await api.saveStream(sessionId, JSON.stringify(recorder.toRecording('live session (real person)')));
+  if (info.demo || !recorder || !sessionId) return;
+  if (settings.saveStreams) {
+    const file: string | null = await api.saveStream(sessionId, JSON.stringify(recorder.toRecording('live session (real person)')));
+    if (file) { streamSavedTo = file; console.warn(`[camera] recording saved: ${file}`); }
+  }
+  renderSaveState();
+}
+
+/** "Recording saved: <file> ..." for the current session, or '' if not saved */
+function savedNote(): string {
+  const name = streamSavedTo?.split(/[\\/]/).pop();
+  return name ? `Recording saved: ${name} (signal numbers only, never video).` : '';
+}
+
+/** Whether this session's signal numbers will be (setup) or were (result) saved, so it is never silent. */
+function renderSaveState() {
+  const setup = $('save-state'), res = $('res-saved');
+  setup.hidden = res.hidden = info.demo;
+  if (info.demo) return;
+  setup.className = `small save-state ${settings.saveStreams ? 'on' : 'off'}`;
+  setup.textContent = settings.saveStreams
+    ? 'Save session data: on. This session’s signal numbers (never video) will be saved on this computer.'
+    : 'Save session data: off. Only the summary will be saved. To keep this session’s signal numbers, turn it on in Your data (top right) before you leave the result.';
+  const note = savedNote();
+  res.className = `small save-state ${note ? 'on' : 'off'}`;
+  res.textContent = note
+    ? note
+    : settings.saveStreams
+      ? 'Recording not saved yet.'
+      : 'Recording not saved: Save session data is off. Turn it on in Your data to save this session’s signal numbers.';
 }

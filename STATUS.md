@@ -174,6 +174,12 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - NOT recorded: "Save session data" was off at Start (settings.json written 10:53:54, after the result), so no metric stream exists. Nothing to promote; GIF and cover from a real recording are blocked on a new live run with the setting on before Start. NEEDS_OWNER.
 - Credits: 32 left (were 83 at the last STATUS entry). The three failed 640×480 runs and this run are not separable; no reading was taken right before this run.
 
+## Save state never silent (Sun Nov 22, ~11:05)
+- Owner: no second full run unless Presage tops up credits. Credits: 32 (unchanged since 10:5x).
+- Every live session's metric stream is now kept in memory and written only if Save session data is on (at the result, at the end, on Stop, or the moment it is switched on after the result). Nothing stored without opting in; consent text unchanged.
+- Setup screen says whether saving is on; result, Stop and dead-session screens say "Recording saved: <file>" or that it was not saved (Stop used to say "Nothing from this session was saved." even when the stream was). Terminal logs the file. 126 tests pass. Setup line not seen on screen yet (Judge Mode skips setup).
+- Reopening the saved summary as a read-only result: possible only in reduced form (see owner answer); not built.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).

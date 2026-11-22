@@ -40,9 +40,12 @@ export class Store {
     fs.rmSync(this.p('sessions', `${safe}.json`), { force: true });
     fs.rmSync(this.p('recordings', `${safe}.stream.json`), { force: true });
   }
-  saveStream(id: string, text: string) {
+  /** Returns the file written. */
+  saveStream(id: string, text: string): string {
     fs.mkdirSync(this.p('recordings'), { recursive: true });
-    fs.writeFileSync(this.p('recordings', `${String(id).replace(/[^\w-]/g, '')}.stream.json`), text);
+    const file = this.p('recordings', `${String(id).replace(/[^\w-]/g, '')}.stream.json`);
+    fs.writeFileSync(file, text);
+    return file;
   }
   /** Removes every file Paceprint created. */
   deleteAll() { fs.rmSync(this.dir, { recursive: true, force: true }); }

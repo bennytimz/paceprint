@@ -119,7 +119,8 @@ app.whenReady().then(() => {
   ipcMain.handle('store:sessions', () => store.listSessions());
   ipcMain.handle('store:saveSession', (_e, s) => (DEMO ? 'demo-not-saved' : store.saveSession(s)));
   ipcMain.handle('store:deleteSession', (_e, id: string) => store.deleteSession(id));
-  ipcMain.handle('store:saveStream', (_e, id: string, text: string) => { if (!DEMO && store.settings().saveStreams) store.saveStream(id, text); });
+  // written only if the person opted in (Save session data); returns the file, or null if not saved
+  ipcMain.handle('store:saveStream', (_e, id: string, text: string) => (!DEMO && store.settings().saveStreams ? store.saveStream(id, text) : null));
   ipcMain.handle('store:deleteAll', () => { store.deleteAll(); return store.summary(); });
   ipcMain.handle('store:summary', () => store.summary());
   ipcMain.handle('app:openDataFolder', () => { fs.mkdirSync(store.dir, { recursive: true }); return shell.openPath(store.dir); });

@@ -16,6 +16,12 @@ describe('local store', () => {
     expect(store.settings().saveStreams).toBe(false);
   });
 
+  it('saveStream returns the file it wrote, so the app can say "Recording saved: <file>"', () => {
+    const file = store.saveStream('20261122T093614', '{"format":"paceprint-stream"}');
+    expect(path.basename(file)).toBe('20261122T093614.stream.json');
+    expect(fs.readFileSync(file, 'utf8')).toBe('{"format":"paceprint-stream"}');
+  });
+
   it('saves, lists and deletes one session (and its stream)', () => {
     store.saveSession({ id: 'a1', createdAt: '2026-11-21T10:00:00Z', bestPace: 5.5 });
     store.saveSession({ id: 'b2', createdAt: '2026-11-21T11:00:00Z', bestPace: 6.0 });

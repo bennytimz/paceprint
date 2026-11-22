@@ -69,6 +69,7 @@
           <label class="confirm"><input type="checkbox" id="confirm-still" /> I'll stay silent and still while measuring.</label>
           <button id="btn-begin" class="primary" disabled>Start (~11 min to your result)</button>
           <p class="muted small" id="setup-msg" role="status">Everything must be green for a few seconds.</p>
+          <p class="small save-state" id="save-state" hidden></p>
         </div>
       </div>
     </section>
@@ -150,6 +151,7 @@
         <table class="stage-table" id="res-table"></table>
         <p class="muted small" id="res-talk"></p>
         <p class="muted small" id="res-baseline"></p>
+        <p class="small save-state" id="res-saved" hidden></p>
         <div id="res-history" class="history" hidden></div>
         <div class="row">
           <button id="btn-guided" class="primary">Start 5-minute guided session</button>

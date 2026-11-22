@@ -168,6 +168,9 @@ summary { cursor: pointer; color: var(--breath); }
 .cert { padding: 14px 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); min-width: 220px; }
 .cert b { display: block; font-size: 18px; }
 .cert.clear b { color: var(--ok); }
+.save-state { margin-top: 8px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); }
+.save-state.on { color: var(--ok); }
+.save-state.off { color: var(--warn, #e0b252); }
 .cert.weak b { color: var(--warn); }
 .cert.flat b, .cert.insufficient b { color: var(--muted); }
 .cert span { font-size: 13px; color: var(--muted); }
