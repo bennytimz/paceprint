@@ -169,3 +169,6 @@ BRIEF.private.md
 video-out/
 __pycache__/
 video-raw/
+
+# local copy of docs/devpost.md for pasting into DEV
+POST_READY.md

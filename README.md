@@ -8,6 +8,8 @@ It is a wellness tool for self-awareness. **Not a medical device**, not for diag
 
 > Built for the DEV x Presage SmartSpectra SDK Challenge (#presagechallenge).
 
+**Demo video (3:11, voice-over and subtitles):** https://youtu.be/kf6evrEm9Uw. The setup check and the start of a baseline are live on my webcam (labelled LIVE). The sweep, the refusal, the rating, the guided session and the data drawer are Judge Mode's **simulated** session. The result screens and the card are from a real live session.
+
 ![Paceprint in Judge Mode: the measuring timer pauses when the signal weakens, readings drop to Not read, the refused stretch is shaded on the traces, then the result curve with felt ease beside it](docs/media/paceprint-judge-mode.gif)
 
 *Judge Mode with the bundled **simulated** session (a modelled person, labelled as such in the app). The person talks during the first pace and the pulse signal weakens: Paceprint pauses, says why, and excludes that stretch. (Recorded before the talking flag became a warning: the app now also shows a **Talking?** warning there, and the result lists each pace's flagged share.)*

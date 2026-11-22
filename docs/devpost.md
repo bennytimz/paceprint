@@ -2,7 +2,7 @@
 title: "Paceprint: find the breathing pace that suits you, from a webcam, and refuse numbers it can't trust"
 published: false
 tags: devchallenge, presagechallenge
-cover_image: ⟦PLACEHOLDER: cover image URL⟧
+cover_image: https://raw.githubusercontent.com/Bennytimz/paceprint/main/paceprint-card-2026-11-22.png
 ---
 
 *This is a submission for the [Presage SmartSpectra SDK Challenge](https://dev.to/challenges/presage-2026-11-04)*
@@ -19,7 +19,7 @@ The rule that shaped everything: **never show a number the data can't support.**
 It's a wellness tool for self-awareness, not a medical device.
 
 ## Demo
-⟦PLACEHOLDER: video link (voice-over + subtitles)⟧
+{% embed https://youtu.be/kf6evrEm9Uw %}
 
 *In the video, the setup check and the start of a baseline (labelled **LIVE** on screen) are recorded on my own webcam: the real SmartSpectra signal, including a real pause when my pulse signal weakened. The sweep, the "Moving" refusal, the rating, the guided session and the data drawer are Judge Mode playing the **simulated** session (the banner says so on screen). The result screens and the card are from my real live session.*
 
@@ -56,7 +56,7 @@ One possible reason, which I haven't tested: heart rate also rises and falls on 
 
 Felt ease didn't separate the paces either: 6.0, 5.5 and 5.0 all felt "OK" (3 of 5). The card's "Felt easiest 6.0/min" is the first of that three-way tie. Seven breaths a minute and my baseline were not read: the trusted data came only in short fragments, so Paceprint left them out instead of guessing.
 
-**What's real and what isn't.** The result screen and the card are from this live session. The session's raw signal stream wasn't saved ("Save session data" was off when I started), so it can't be replayed, and Judge Mode plays a simulated session instead. The app now says on the setup screen whether saving is on, and keeps the stream in memory until you leave the result so it can still be saved. The real-signal check anyone can run is `npm run verify-sdk` (output below).
+**What's real and what isn't.** The result screen and the card are from this live session. The session's raw signal stream wasn't saved ("Save session data" was off when I started), so it can't be replayed, and Judge Mode plays a simulated session instead. The app now says on the setup screen whether saving is on, and keeps the stream in memory until you leave the result so it can still be saved. The real-signal check anyone with a SmartSpectra key can run is `npm run verify-sdk` (output below).
 
 ## Code
 https://github.com/Bennytimz/paceprint (MIT)
@@ -134,6 +134,8 @@ Validation states seen:
 
 ## Prize Categories
 **Best Thoughtful Real-World Use.** A real question (is the "standard" pace right for me?), answered with the person's own data, with consent and honesty as design features: local only, no video stored, no AI services, telemetry off, measured network audit, one-click delete, and a visible refusal instead of a confident guess.
+
+**Most Creative or Delightful Use.** A webcam becomes a breathing-pace finder: you breathe along with a calm pacer, and the app draws a curve of how your own heart rhythm answered each pace, puts how easy each pace felt beside it, and ends with a share card of your pace.
 
 ## Consent and Data Handling
 This is the "In short" notice shown in the app before the camera turns on (the full notice is in [`docs/consent-and-data-handling.md`](https://github.com/Bennytimz/paceprint/blob/main/docs/consent-and-data-handling.md)):

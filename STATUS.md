@@ -238,3 +238,18 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Credits: 32 → 27.
 - The video is now 3:11 (scene 3 is 45 s and the sweep is 30 s), with no timing warnings. A red "LIVE" label sits in
   the top bar for the whole live scene. The card and cover are unchanged and show no face.
+
+## Sun Nov 22: ready to post
+- The post embeds the YouTube video (https://youtu.be/kf6evrEm9Uw). The cover is the card's raw GitHub URL. Both
+  prize categories are listed. verify-sdk is described as needing a key. No placeholders are left. The README
+  links the video and labels which scenes are live, simulated and real.
+- Post claims checked against the code:
+  - confidence 40/45/50;
+  - up to 45 s extra measuring time;
+  - three 30 s parts;
+  - the PLV ceiling;
+  - "Felt easiest" is the first of a tie.
+- Final secret scan on all files and full history: no key, no email, no Windows username, no second account, no
+  tokens or private keys. Commits are by Bennytimz noreply only, with no attribution lines. 126 tests pass, and
+  typecheck and build are clean.
+- POST_READY.md (gitignored) holds the post to paste. FINISH.md lists 3 steps: post, publish, delete the bundle afterwards.
