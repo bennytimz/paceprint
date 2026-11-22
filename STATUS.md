@@ -162,7 +162,7 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 
 ## Option 2: camera captured in the main process (Sun Nov 22, 10:18, 2-hour limit to 12:18)
 - Third live run at 640×480: error 14 again, three times. Window camera path gave 18-29 fps, falling over ~30 s; SDK dropped none. verify-sdk (native capture) gave 30 fps on this laptop.
-- Built (10:30): `src/main/live-sdk.ts` runs the SDK with its own default camera, exactly like verify-sdk; the window never opens the camera (all media permission requests denied) and never receives the key. Preview = SDK `videoOutput` frames on a canvas (drawn only, Rule 6), auto-switching to a pacer-only screen if none arrive in 8 s. Flicker check runs only with the preview. 23 new tests; 121 pass. Decision in docs/decisions.md.
+- Built (10:30): `src/main/live-sdk.ts` runs the SDK with its own default camera, exactly like verify-sdk; the window never opens the camera (all media permission requests denied) and never receives the key. Preview = SDK `videoOutput` frames on a canvas (drawn only, Rule 6), auto-switching to a pacer-only screen if none arrive in 8 s. Flicker check runs only with the preview (owner approved). 23 new tests; 121 pass. Decision in docs/decisions.md.
 - Owner's test run: NEEDS_OWNER. Look for `[live] fps over last 5 s: SDK camera ~30` and whether the preview shows your face.
 - If not at 30 fps by 12:18: fallback wording ready in FALLBACK.private.md (gitignored, not applied).
 
