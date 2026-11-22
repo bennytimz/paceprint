@@ -27,7 +27,7 @@ export const ANALYSIS = {
   /** ...or if every pace is at least this high */
   plvCeiling: 0.95,
   /** certainty thresholds, in bpm of heart-rate swing (physical units, easy to explain) */
-  clear: { gap: 0.75, ratio: 1.15, gapSE: 2 },
+  clear: { gap: 0.75, ratio: 1.15, gapSE: 2, /** PLV at the peak */ minPlv: 0.5, /** paces compared */ minPaces: 4 },
   /** a pace is marked caveated when the SDK talking flag was on for at least this share of its trusted
    *  measuring time (display only; nothing is refused or re-ranked). docs/decisions.md, Rule 8 decision. */
   talkCaveat: 0.4,
@@ -394,6 +394,10 @@ export interface SweepChecks {
   /** PLV near 1.0 (or nearly equal) at every pace: it cannot tell paces apart and is left out of the ranking */
   plvSaturated: boolean;
   plvRange: { min: number; max: number } | null;
+  /** PLV at the top-ranked pace (null if not measured) */
+  peakPlv: number | null;
+  /** paces that could be compared */
+  pacesRead: number;
 }
 
 export interface SweepResult {
@@ -424,7 +428,7 @@ function sd(xs: number[]): number {
 }
 
 function emptyChecks(): SweepChecks {
-  return { blockPeaks: [], blocksAgree: false, blocksMostlyAgree: false, standsOut: false, gapToNeighbours: null, spread: null, wobble: null, plvSaturated: false, plvRange: null };
+  return { blockPeaks: [], blocksAgree: false, blocksMostlyAgree: false, standsOut: false, gapToNeighbours: null, spread: null, wobble: null, plvSaturated: false, plvRange: null, peakPlv: null, pacesRead: 0 };
 }
 
 export function summarizeSweep(stages: StageResult[], baseline: StageResult | null): SweepResult {
@@ -514,7 +518,9 @@ export function summarizeSweep(stages: StageResult[], baseline: StageResult | nu
     checks.blocksAgree = checks.blockPeaks.length === nB && checks.blockPeaks.every((b) => b !== null) && near === nB && exact >= 2;
     checks.blocksMostlyAgree = near >= 2;
 
-    if (checks.standsOut && checks.blocksAgree && ranked.length >= 4 && (top.plv ?? 0) >= 0.5) certainty = 'clear';
+    checks.peakPlv = top.plv !== null && fin(top.plv) ? top.plv : null;
+    checks.pacesRead = ranked.length;
+    if (checks.standsOut && checks.blocksAgree && ranked.length >= c.minPaces && (top.plv ?? 0) >= c.minPlv) certainty = 'clear';
     else if (weakStand && checks.blocksMostlyAgree) certainty = 'weak';
     else certainty = 'flat';
   } else {
@@ -550,7 +556,19 @@ function explain(mode: SweepResult['mode'], certainty: Certainty, best: number, 
     (vsBaseline ? `, with a heart-rate swing ${vsBaseline.toFixed(1)}× your normal breathing.` : '.');
   if (certainty === 'clear') t += ' All three 30-second parts of the measurement agreed, and it stood clear of the paces either side.';
   else {
-    const reasons = [!k.standsOut ? notAbove : '', !k.blocksAgree ? partsDisagree : ''].filter(Boolean);
+    // every 'clear' requirement that failed, so the sentence never lacks its reason
+    const c = ANALYSIS.clear;
+    const loosePlv = k.peakPlv === null
+      ? 'the timing link between heartbeat and breath could not be measured at that pace'
+      : k.peakPlv < c.minPlv
+        ? `your heartbeat did not keep time with your breathing at that pace (coupling ${k.peakPlv.toFixed(2)}; a clear peak needs ${c.minPlv.toFixed(2)})`
+        : '';
+    const reasons = [
+      !k.standsOut ? notAbove : '',
+      !k.blocksAgree ? partsDisagree : '',
+      loosePlv,
+      k.pacesRead < c.minPaces ? `only ${k.pacesRead} paces could be compared (a clear peak needs ${c.minPaces})` : '',
+    ].filter(Boolean);
     t += ` The peak is weak: ${reasons.join(', and ')}. Treat it as a starting point.`;
   }
   if (atEdge) t += ' It was at the edge of the range tested, so your best may lie just beyond it.';

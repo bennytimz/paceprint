@@ -166,6 +166,14 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Owner's test run: NEEDS_OWNER. Look for `[live] fps over last 5 s: SDK camera ~30` and whether the preview shows your face.
 - If not at 30 fps by 12:18: fallback wording ready in FALLBACK.private.md (gitignored, not applied).
 
+## Live sweep completed in the app (Sun Nov 22, 10:36-10:53)
+- Option 2 works: 209 fps lines, SDK camera 29.8-30.2 fps the whole ~17 min, 0 dropped, preview from SDK frames (30 fps), no SDK error. Owner's test run done.
+- Result: best ≈ 6.0/min, weak. Baseline and 7.0/min not read ("short fragments": no trusted stretch of 20 s). 6.5: swing 3.5 bpm, PLV 0.05; 6.0: swing 8.4, PLV 0.07, lock ≤ 116 s (bound); 5.5: swing 4.1, PLV 0.77; 5.0: swing 3.7, PLV 0.61. Felt: 2, 1, 3, 3, 3.
+- Weak, not clear, only because PLV at the peak (0.07) is below the 0.5 that 'clear' requires; swing stood out and all three parts agreed.
+- Bug fixed: the weak headline lost its reason ("The peak is weak: . Treat it ...") when the failing rule was PLV or fewer than 4 paces; it now names every failing rule. Same thresholds (named ANALYSIS.clear.minPlv / minPaces). 4 tests (tests/headline.test.ts); 125 pass.
+- NOT recorded: "Save session data" was off at Start (settings.json written 10:53:54, after the result), so no metric stream exists. Nothing to promote; GIF and cover from a real recording are blocked on a new live run with the setting on before Start. NEEDS_OWNER.
+- Credits: 32 left (were 83 at the last STATUS entry). The three failed 640×480 runs and this run are not separable; no reading was taken right before this run.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
