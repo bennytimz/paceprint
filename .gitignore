@@ -163,6 +163,7 @@ dist-app/
 
 # Private working notes (never commit)
 BRIEF.private.md
+*.private.md
 
 # demo video build output
 video-out/

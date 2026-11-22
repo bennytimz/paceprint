@@ -12,6 +12,8 @@ import { detectBeats, heartRateSeries, coupling, ANALYSIS, StageResult, guidedPa
 import { resample, bandpass } from '../core/dsp';
 import { validationMessage } from '../core/validation-codes';
 import { CameraSource } from './camera-source';
+import { PreviewCanvas } from './preview';
+import type { PreviewMode } from '../core/preview-frame';
 import { TraceCanvas, measuredChart, feltChart, Span } from './charts';
 import { mdToHtml, splitConsent } from './md';
 
@@ -165,7 +167,7 @@ async function startSession() {
 
   replay = null;
   recorder = settings.saveStreams ? new Recorder('camera') : null;
-  const cam = new CameraSource((stream) => attachStream(stream), (m) => console.warn('[camera]', m));
+  const cam = new CameraSource(preview, (m) => console.warn('[camera]', m));
   source = cam;
   $('setup-msg').textContent = 'Starting the camera…';
   health.start(wallS());
@@ -177,19 +179,26 @@ async function startSession() {
     await stopSource();
     const msg = String(e?.message ?? e);
     if (msg.includes('NO_KEY')) message('Setup needed', 'No SmartSpectra API key found.', 'Add SMARTSPECTRA_API_KEY to the .env file (see .env.example and the README), then restart. Without a key you can still run Judge Mode: npm run demo.', 'Back', () => show('scr-consent'));
-    else if (/Permission|NotAllowed|NotFound|NotReadable/i.test(msg)) message('Camera', 'The camera could not start.', `Check that no other app is using the camera and that Windows camera access is allowed for desktop apps. (${msg})`);
+    else if (/Permission|NotAllowed|NotFound|NotReadable|SDK error 7\)/i.test(msg)) message('Camera', 'The camera could not start.', `Check that no other app is using the camera and that Windows camera access is allowed for desktop apps. (${msg})`);
     else message('Something went wrong', 'Could not start the measurement.', msg);
   }
 }
 
-function attachStream(stream: MediaStream) {
-  for (const id of ['preview', 'preview-mini']) {
-    const v = $(id) as HTMLVideoElement;
-    v.hidden = false; v.srcObject = stream;
-  }
-  $('preview-placeholder').hidden = true; $('mini-placeholder').hidden = true;
-  $('cam-live').hidden = false;
-  stream.getVideoTracks()[0]?.addEventListener('ended', () => { $('cam-live').hidden = true; });
+// Live preview: the SDK's own camera frames, drawn on the canvases (never kept: Rule 6). If none arrive,
+// a pacer-only screen without the face, chosen automatically (core/preview-frame.ts previewMode).
+const PACER_ONLY = '<span>Camera live<br/><small>No preview on this camera path. Follow the checks and the pacer.<br/>Flicker cannot be checked without the preview: use daylight or a steady lamp.</small></span>';
+const preview = new PreviewCanvas([$('preview') as HTMLCanvasElement, $('preview-mini') as HTMLCanvasElement], onPreview);
+let pacerOnlyLogged = false;
+function onPreview(on: boolean, mode: PreviewMode) {
+  $('cam-live').hidden = !on;
+  const frames = on && mode === 'frames';
+  const none = on && mode === 'none';
+  $('preview').hidden = !frames; $('preview-mini').hidden = !frames;
+  $('preview-placeholder').hidden = frames; $('mini-placeholder').hidden = frames;
+  const text = none ? PACER_ONLY : on ? '<span>Camera live<br/><small>Waiting for the preview…</small></span>' : '<span>Camera off</span>';
+  $('preview-placeholder').innerHTML = text; $('mini-placeholder').innerHTML = text;
+  if (none && !pacerOnlyLogged) { console.warn(`[camera] no preview frames from the SDK; pacer-only screen (flicker check off)`); pacerOnlyLogged = true; }
+  if (frames && pacerOnlyLogged) { console.warn('[camera] preview frames arrived; showing the preview'); pacerOnlyLogged = false; }
 }
 
 async function stopSource() {
@@ -197,12 +206,6 @@ async function stopSource() {
   source = null;
   health.stop();
   if (s) { try { await s.stop(); } catch { /* ignore */ } }
-  for (const id of ['preview', 'preview-mini']) {
-    const v = $(id) as HTMLVideoElement;
-    const st = v.srcObject as MediaStream | null;
-    st?.getTracks().forEach((t) => t.stop());
-    v.srcObject = null;
-  }
   $('cam-live').hidden = true;
 }
 
@@ -694,9 +697,9 @@ const pctx = probe.getContext('2d', { willReadFrequently: true })!;
 const lumas: number[] = [];
 setInterval(() => {
   if (!protocol || info.demo) return;
-  const v = $('preview') as HTMLVideoElement;
-  if (!v.srcObject || v.readyState < 2) return;
-  pctx.drawImage(v, 0, 0, 16, 9);
+  // reads the SDK preview frames; with no preview (pacer-only screen) flicker can't be checked
+  if (!preview.hasFrames) { lumas.length = 0; return; }
+  pctx.drawImage($('preview') as HTMLCanvasElement, 0, 0, 16, 9);
   const d = pctx.getImageData(0, 0, 16, 9).data;
   let s = 0;
   for (let i = 0; i < d.length; i += 4) s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
@@ -799,7 +802,7 @@ async function startGuidedLive() {
   if (!protocol || info.demo || pendingGuided) return;
   const b = $('btn-guided') as HTMLButtonElement;
   b.disabled = true; b.textContent = 'Starting camera… sit as before';
-  const cam = new CameraSource((stream) => attachStream(stream), (m) => console.warn('[camera]', m), clock());
+  const cam = new CameraSource(preview, (m) => console.warn('[camera]', m), clock());
   source = cam;
   running = true;
   $('btn-stop').hidden = false;

@@ -1,13 +1,22 @@
-// Sandboxed preload. Exposes the SmartSpectra bridge (official SDK preload, bundled in) and a
-// small, explicit Paceprint API. Nothing else from Node is reachable from the page.
-import { contextBridge, ipcRenderer } from 'electron';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-require('@smartspectra/node-sdk/preload');
+// Sandboxed preload. Exposes a small, explicit Paceprint API. Nothing else from Node is reachable from
+// the page. The live SDK runs in the main process with its own camera; the page only receives its events
+// and preview frames (drawn on screen, never stored or sent: Rule 6).
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+
+/** subscribe to a main-process channel; returns the unsubscribe function */
+function listen(channel: string, fn: (payload: any) => void): () => void {
+  const h = (_e: IpcRendererEvent, payload: unknown) => fn(payload);
+  ipcRenderer.on(channel, h);
+  return () => { ipcRenderer.removeListener(channel, h); };
+}
 
 const api = {
   info: () => ipcRenderer.invoke('app:info'),
   acceptConsent: () => ipcRenderer.invoke('consent:accept'),
-  prepareLive: () => ipcRenderer.invoke('live:prepare') as Promise<string>,
+  liveStart: () => ipcRenderer.invoke('live:start'),
+  liveStop: () => ipcRenderer.invoke('live:stop'),
+  onLiveEvent: (fn: (e: any) => void) => listen('live:event', fn),
+  onLiveFrame: (fn: (f: any) => void) => listen('live:frame', fn),
   loadFixture: () => ipcRenderer.invoke('fixture:load') as Promise<string>,
   settings: () => ipcRenderer.invoke('store:settings'),
   saveSettings: (s: unknown) => ipcRenderer.invoke('store:saveSettings', s),

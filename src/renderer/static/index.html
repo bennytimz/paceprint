@@ -48,7 +48,7 @@
     <section id="scr-setup" class="screen" hidden>
       <div class="setup">
         <div class="preview-wrap">
-          <video id="preview" class="preview" autoplay muted playsinline></video>
+          <canvas id="preview" class="preview" hidden></canvas>
           <div id="preview-placeholder" class="preview placeholder" hidden><span>Recorded session<br /><small>no camera in Judge Mode</small></span></div>
           <div class="preview-chips" id="setup-chips"></div>
         </div>
@@ -104,7 +104,7 @@
         <div class="signal-col">
           <div class="sig-top">
             <div class="mini-preview-wrap">
-              <video id="preview-mini" class="mini-preview" autoplay muted playsinline></video>
+              <canvas id="preview-mini" class="mini-preview" hidden></canvas>
               <div id="mini-placeholder" class="mini-preview placeholder" hidden><span>Recorded session</span></div>
             </div>
             <div class="readouts" id="readouts"></div>

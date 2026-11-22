@@ -86,7 +86,7 @@ npm run typecheck
 | Confidence / `stable` flags | Pulse and pressure must reach confidence 40, breathing 45, HRV 50 before a number is shown as Trusted. Never trusted alone: motion and flicker are checked independently | `validity.ts`, `renderer/app.ts` (`renderReadouts`) |
 | `cardio.pulseRate` (12 s average), `breathing.rate` (30 s), `cardio.hrv` (60 s) | Shown as context with Trusted / Not read states and a warm-up strip; **not** used for coupling, because a 12 s average erases the swing we measure | `renderer/app.ts` |
 | `eda.trace` | Warm-up strip only (35 s window); not interpreted | `validity.ts` (`WARMUP`) |
-| `processingStatus`, `error` (incl. credits exhausted, auth) | Friendly stop screens; automatic fallback to breathing-only if the key isn't provisioned for cardio | `renderer/camera-source.ts`, `renderer/app.ts` |
+| `processingStatus`, `error` (incl. credits exhausted, auth) | Friendly stop screens; automatic fallback to breathing-only if the key isn't provisioned for cardio | `main/live-sdk.ts`, `renderer/camera-source.ts`, `renderer/app.ts` |
 
 Not used, on purpose: expressions (no emotion inference), and the SDK's optional LLM "insights" (no AI services). Paceprint does not use an inhale/exhale ratio, apnea detection, or an SDK coupling score: SDK 3.5 does not deliver them (`docs/spike.md`). Every coupling number is Paceprint's own, computed from the beat-level pulse waveform and the breathing traces.
 
@@ -104,11 +104,11 @@ src/core/        no Electron imports; runs in the app, in Node scripts, and in t
   protocol.ts      consent -> setup -> baseline -> 5 paces (settle + measure + rating) -> result -> guided
   analysis.ts      follow score, time to lock, beats, coupling, curve, best pace, certainty
   recorder.ts      metric-stream recordings (numbers only, never video)
-src/main/        Electron main: window, camera permission (video only, after consent), local store, SDK IPC
-src/renderer/    UI; camera-source.ts wraps the official renderer SDK (camera in the window, SDK native runtime in main)
+src/main/        Electron main: window, local store; live-sdk.ts runs the SDK with its own camera capture (after consent)
+src/renderer/    UI; camera-source.ts receives the SDK's events; the window never opens the camera
 scripts/         verify-sdk (judge-runnable), make-fixture, net-audit.md
 ```
-The SDK is bound only when you start a live session, so Judge Mode never loads it.
+The SDK is loaded only when you start a live session, so Judge Mode never loads it. In a live session the SDK captures the camera itself in the main process (the same path as `verify-sdk`), so there is only one capture path and the API key never reaches the window. The preview shows the SDK's own frames, drawn on screen only and never stored or sent; if the SDK provides none, the screen shows the pacer and checks without your face.
 
 ## Consent and data handling
 The full notice is `docs/consent-and-data-handling.md`. The app shows **this same file** (it is bundled into the app at build time), so the wording cannot drift. In short:

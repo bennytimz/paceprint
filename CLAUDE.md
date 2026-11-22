@@ -14,8 +14,8 @@ src/core/      no Electron imports; runs in the app, Node scripts and Vitest
   protocol.ts    setup -> baseline -> 5 paces (settle, measure, felt-ease) -> result -> guided
   analysis.ts    follow score, time to lock, beat detection, coupling, curve, best pace, certainty
   recorder.ts    metric-stream recordings (numbers only, never video)
-src/main/      Electron main: window, camera permission, local store, SDK IPC (bound only for live sessions)
-src/renderer/  UI; camera-source.ts wraps the official renderer SDK
+src/main/      Electron main: window, local store; live-sdk.ts runs the SDK with its own camera (live sessions only)
+src/renderer/  UI; camera-source.ts receives SDK events from main; the window never opens the camera
 scripts/       verify-sdk.ts, make-fixture.ts, build.mjs, net-audit.md
 tests/         Vitest; fixtures/ holds metric streams only
 docs/          spike, analysis, consent-and-data-handling, decisions, demo-script, devpost

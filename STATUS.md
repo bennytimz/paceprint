@@ -160,6 +160,12 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Fixed (01:39), not yet confirmed live: app captures 640×480 @ 30 through `useMediaStream`; fps line every 5 s (camera vs accepted by SDK); teardown uses reset() after an error, time-limited, fresh stream per attempt. 6 new tests; 98 pass.
 - Owner's short run: NEEDS_OWNER 1j.
 
+## Option 2: camera captured in the main process (Sun Nov 22, 10:18, 2-hour limit to 12:18)
+- Third live run at 640×480: error 14 again, three times. Window camera path gave 18-29 fps, falling over ~30 s; SDK dropped none. verify-sdk (native capture) gave 30 fps on this laptop.
+- Built (10:30): `src/main/live-sdk.ts` runs the SDK with its own default camera, exactly like verify-sdk; the window never opens the camera (all media permission requests denied) and never receives the key. Preview = SDK `videoOutput` frames on a canvas (drawn only, Rule 6), auto-switching to a pacer-only screen if none arrive in 8 s. Flicker check runs only with the preview. 23 new tests; 121 pass. Decision in docs/decisions.md.
+- Owner's test run: NEEDS_OWNER. Look for `[live] fps over last 5 s: SDK camera ~30` and whether the preview shows your face.
+- If not at 30 fps by 12:18: fallback wording ready in FALLBACK.private.md (gitignored, not applied).
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
@@ -169,4 +175,4 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Without the camera: cover image, final read-through of every doc; item 14 (adaptive nudging) stays deferred.
 
 ## Blockers / risks
-- Live path (renderer SDK via bindSmartSpectraIpc) untested with a person in frame.
+- Live path (SDK native capture in main, src/main/live-sdk.ts) untested with a person in frame.

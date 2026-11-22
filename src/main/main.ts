@@ -1,9 +1,10 @@
-// Electron main process: window, permissions, local store, SDK IPC (live mode only).
+// Electron main process: window, permissions, local store, live SDK session (live mode only).
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import { loadEnvKey } from './env';
 import { Store } from './store';
+import type { LiveSdk } from './live-sdk';
 
 const DEMO = process.argv.includes('--demo');
 const ROOT = app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '..', '..');
@@ -11,7 +12,7 @@ const NET_AUDIT = process.env.PACEPRINT_NET_AUDIT === '1';
 let store: Store;
 let win: BrowserWindow | null = null;
 let consentGiven = false;
-let sdkBound = false;
+let live: LiveSdk | null = null;
 
 function createWindow() {
   win = new BrowserWindow({
@@ -60,24 +61,25 @@ function createWindow() {
   });
 }
 
-/** Bind the SmartSpectra IPC bridge on demand, so Judge Mode never loads the native runtime. */
-function bindSdk() {
-  if (sdkBound || !win) return;
+/** The live SDK session, created on demand so Judge Mode never loads the native runtime. */
+function liveSdk(): LiveSdk {
+  if (live) return live;
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { bindSmartSpectraIpc } = require('@smartspectra/node-sdk/main');
-  bindSmartSpectraIpc(win, { logger: (lvl: string, msg: string) => { if (lvl !== 'info') console.log(`[sdk-ipc ${lvl}] ${msg}`); } });
-  sdkBound = true;
+  const { LiveSdk: Live } = require('./live-sdk') as typeof import('./live-sdk');
+  live = new Live(
+    (e) => { if (win && !win.isDestroyed()) win.webContents.send('live:event', e); },
+    // preview frames go to our own window only, to be drawn; never stored or sent elsewhere (Rule 6)
+    (f) => { if (win && !win.isDestroyed()) win.webContents.send('live:frame', f); },
+  );
+  return live;
 }
 
 app.whenReady().then(() => {
   store = new Store(path.join(app.getPath('userData'), 'paceprint-data'));
 
-  // Camera only, video only, only for our own bundled page, and only after consent.
-  session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details: any) => {
-    const url = details?.requestingUrl || wc?.getURL() || '';
-    const media = details?.mediaTypes || [];
-    callback(permission === 'media' && consentGiven && !DEMO && media.length === 1 && media[0] === 'video' && url.startsWith('file://'));
-  });
+  // The window never opens the camera or microphone: the SDK captures the camera in this process, after
+  // consent, so there is only ever one capture path (Windows won't share a webcam between two).
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
 
   // Renderer network log (used for the network audit). Native SDK traffic is audited at OS level.
   session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
@@ -96,14 +98,15 @@ app.whenReady().then(() => {
     dataDir: store.dir,
   }));
   ipcMain.handle('consent:accept', () => { consentGiven = true; return DEMO ? store.settings() : store.saveSettings({ consentAcceptedAt: new Date().toISOString() }); });
-  ipcMain.handle('live:prepare', () => {
+  // The SDK captures the camera itself, in this process (src/main/live-sdk.ts). The key never leaves it.
+  ipcMain.handle('live:start', () => {
     if (!consentGiven) throw new Error('Consent required before the camera can start.');
     if (DEMO) throw new Error('Judge Mode never uses the camera.');
     const key = loadEnvKey(ROOT);
     if (!key) throw new Error('NO_KEY');
-    bindSdk();
-    return key; // goes only to our sandboxed renderer, which hands it to the SDK bridge
+    return liveSdk().start(key);
   });
+  ipcMain.handle('live:stop', () => live?.stop());
   ipcMain.handle('fixture:load', () => {
     const dir = path.join(__dirname, '..', 'fixtures');
     const real = path.join(dir, 'judge-recorded.json');
@@ -124,4 +127,4 @@ app.whenReady().then(() => {
   createWindow();
 });
 
-app.on('window-all-closed', () => app.quit());
+app.on('window-all-closed', () => { void (live?.stop() ?? Promise.resolve()).finally(() => app.quit()); });
