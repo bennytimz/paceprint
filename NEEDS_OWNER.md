@@ -73,6 +73,13 @@ npm run talk-contrast
 ```
 Then Claude runs the fixed test (`scripts/eval-burst-tolerance.ts`): ADOPT or REJECT.
 
+## 1j. Short app run at 640×480 (about 2 minutes of camera, about 2-3 credits)
+`npm start`, keep the window in front, stay on setup and a little of the baseline, then press Stop.
+In the terminal check: the `capture 640x480 @ 30 fps` line, the `fps over last 5 s` lines (camera and
+"accepted by SDK" should both be near 30), no `SDK error 14`. On screen: all checklist rows green, the
+Pulse, Breathing, EDA and HRV bars filling. To test Try again without waiting for an error: press Stop,
+then Start again, and check that data flows the second time.
+
 ## 1i. Re-record the Judge Mode GIF (no camera, no credits)
 `docs/media/paceprint-judge-mode.gif` shows the old "Paused: Talking" card. Talking is now a warning
 (docs/decisions.md, Rule 8 decision). Re-record with `npm run demo`; the README caption already says the GIF predates the change.

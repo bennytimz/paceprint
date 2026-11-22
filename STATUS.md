@@ -155,6 +155,11 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - Fixed (01:29): window no longer throttled in the background; any SDK error or 30 s of silence (20 s before the first packet) ends the session on an explained screen with Try again; every SDK error logged as `[camera] SDK error ...`. 8 new tests; 92 pass.
 - Next live run: keep the window in front; if it fails, the screen and the terminal both name the SDK error.
 
+## Second live npm start: SDK error 14, low frame rate (Sun Nov 22, 01:31)
+- Error named by the new logging: SustainedLowFrameRate at ~80 s; not billed (credits still 83). Try again then reached Running with no frames.
+- Fixed (01:39), not yet confirmed live: app captures 640×480 @ 30 through `useMediaStream`; fps line every 5 s (camera vs accepted by SDK); teardown uses reset() after an error, time-limited, fresh stream per attempt. 6 new tests; 98 pass.
+- Owner's short run: NEEDS_OWNER 1j.
+
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.
 - New `npm run talk-contrast` (60 s: 20 s silent, 20 s reading a sentence aloud, 20 s silent): talking-flag % and bursts per part, no coupling. Summary tested offline (reproduces the live talk-check printout; a synthetic silent/aloud/silent stream splits correctly).
