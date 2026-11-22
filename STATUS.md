@@ -40,7 +40,7 @@ Skeptical pass against the criteria (technology, usability, originality) and the
 7. **Untested platform claim (FIXED).** README listed macOS/Linux as supported; now says the SDK lists them and we haven't tested them.
 8. **Post template incomplete (FIXED).** The official `## Agent Session` heading was missing; restored with "Not included: the build sessions contain personal paths and details."
 9. **Placeholders and private repo (owner).** Video link, verify-sdk output (README and post), real GIF, cover upload; the GitHub repo still returns 404 to anonymous users, so a judge can't clone it yet. → NEEDS_OWNER #4, #5.
-10. **Usability and originality ceiling (not fixable now).** A result costs ~11 min of camera time (16 with the guided session) and trial credits a judge may not have; pace finding itself is prior art (Presage's Coherence app, Outliyr Coherence). The pitch must lean on webcam-only + visible refusal + measured vs felt, which only the real video can prove.
+10. **Usability and originality ceiling (not fixable now).** A result costs ~17 min of camera time, measured (~22 with the guided session) and trial credits a judge may not have; pace finding itself is prior art (Presage's Coherence app, Outliyr Coherence). The pitch must lean on webcam-only + visible refusal + measured vs felt, which only the real video can prove.
 Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); consent text is one bundled file shared by app, README summary and post; "nothing leaves your device" is never claimed.
 
 ## Certainty made robust (Sat Nov 21, ~22:00)
@@ -185,8 +185,15 @@ Rules check: no diagnosis/treatment wording found (grep of app, docs, scripts); 
 - README "A real session" section, post "A Real Session" section with the card, demo script scene 7 = real result: about 6/min, weak; swing 8.4 at 6.0 vs 3.5-4.1; PLV 0.07 at 6.0, 0.77 at 5.5; 7.0 and baseline not read. Weak = coupling at the peak below 0.5 (the other three clear checks passed). Mayer wave stated as a possible reason only.
 - Judge Mode stated as simulated everywhere; raw stream of the live session not saved; result screen and card are real. Post GIF placeholder replaced by the simulated Judge Mode GIF, captioned. Card's "Felt easiest 6.0" noted as first of a three-way tie (6.0/5.5/5.0 all 3).
 - Demo script: scenes 2-6 and 8 from Judge Mode (banner visible), scene 7 the real result capture and card; retimed (scene 7 1:45-2:22); output paths fixed (backslashes had been eaten). FALLBACK.private.md no longer needed (in-app live works).
-- README time estimate: measured ~17 min consent to result added next to the "~11 min" estimate. The in-app Start button still says "~11 min to your result" (not changed).
+- README time estimate: measured ~17 min consent to result added next to the "~11 min" estimate. The in-app Start button now says "~17 min to your result" (changed 11:3x).
 - Open: cover image URL (post front matter), video link.
+
+## Camera time and video assembly (Sun Nov 22, ~11:40)
+- "~11 min" replaced by the measured "~17 min to your result" (Start button, camera-time notice: total ~22 min with the guided session; README).
+- scripts/assemble-raw-cut.py: builds video-raw/raw-cut.mp4 (silent, 2:51) timed to docs/demo-script.md from judge.mp4 (scenes 2-6, 10), guided-live.mp4 (8; falls back to judge.mp4), code.mp4 (9; falls back to a text card), docs/media/real-result-1.png and -2.png plus the card (7, slow zoom/pan), title and end cards drawn. Tested on synthetic inputs: 171.0 s exactly. video-raw/ gitignored.
+- Demo script: numbered recording steps (no camera, no credits). Scene 7 stills, scene 8 the live guided clip.
+- Hazard found, not fixed: in Judge Mode, Your data → Delete everything deletes the real saved sessions on this computer (no Judge Mode guard). The recording steps say never click it. NEEDS_OWNER.
+- Waiting on owner: the two screenshots in docs/media, the recordings, cuts.txt.
 
 ## Next
 - Talking flag: Rule 8 stays, no threshold changes (owner, Sat ~21:55). Fixes committed (a09f4dc). New `npm run talk-check` (75 s: 15 s nose normal breathing, then 60 s at 5/min nose): prints talking-flag % and burst lengths per phase, no coupling, and saves the recording. Tested offline on the spike 2 recording.

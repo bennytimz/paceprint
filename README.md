@@ -64,7 +64,7 @@ copy .env.example .env          # macOS/Linux: cp .env.example .env
 # edit .env: SMARTSPECTRA_API_KEY=your_key
 npm start
 ```
-Sit about an arm's length from the camera, laptop on a table, even light from the front, chest in view. **Estimated camera time: ~16 min** (about 11 min to your result, then an optional 5-minute guided session). The camera switches off while you read your result, so no SDK time is spent there. Refused stretches pause the timer, so it can run longer: our one full live session took about 17 minutes from consent to result.
+Sit about an arm's length from the camera, laptop on a table, even light from the front, chest in view. **Estimated camera time: ~22 min**: about 17 min to your result (measured in our one full live session, from consent to result), then an optional 5-minute guided session. Refused stretches pause the timer, so it can run longer. The camera switches off while you read your result, so no SDK time is spent there.
 
 ### Check the SDK on your machine
 ```bash

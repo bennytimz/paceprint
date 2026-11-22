@@ -168,3 +168,4 @@ BRIEF.private.md
 # demo video build output
 video-out/
 __pycache__/
+video-raw/
